@@ -142,8 +142,209 @@ of GPUs to make a large amount of computations. And finally new algorithms have
 been developed to make NNs faster. That's the main reason why deep learning is
 taking off.
 
+\section{Notation}%
+\label{sec:notation}
 
+Before continuing, we need to define the notation we're going to use.
 
+\begin{itemize}
+    \item $(x,y)$ will denote a single training input;
+    \item $m$ or $m_{\text{train}}$ denotes the number of training examples;
+    \item $\xii[x]{i}$ denotes the $i$-th training input;
+    \item $\xii[y]{i}$ denotes the $i$-th traning output;
+    \item $n_x$ or $n$ denotes the number of dimensions $x$ has (or the number
+        of features);
+    \item $m_{\text{test}}$ denotes the number of testing examples;
+    \item $X$ is the matrix of all traning examples. It's defined as:
+        \[
+        X = \begin{bmatrix}
+            | & | &  & | \\
+            \xii[x]{1} & \xii[x]{2} & \cdots & \xii[x]{m} \\
+            | & | &  & | \\
+        \end{bmatrix}
+        \]
+        $X$ is an $m\times n$ matrix;
+    \item $Y$ is the matrix of all outputs. It's defined as:
+        \[
+        Y = \begin{bmatrix}
+            \xii[y]{1} & \xii[y]{2} & \cdots & \xii[y]{m}
+        \end{bmatrix}
+        \]
+        $Y$ is a $1\times m$ matrix.
+\end{itemize}
+
+\begin{obs}
+In other courses we might see $X$ defined as the transpouse of the matrix we've
+just defined. But it turns out that when using this definiting, it's much easier
+to implement algorithms, so remember te definition we're going to use through out
+the course.
+
+The same thing for $Y$. We see that here $Y$ is the transpouse of that it's
+tends to be in other courses.
+\end{obs}
+
+\section{Logistic Regression as a Neural Network}%
+\label{par:logistic_regression_as_a_neural_network}
+
+To end this introduction, we'll see the basics of neural network programming
+using the simplest NN we can: a logistic regression.
+
+So let's recall what's logistic regression and why it's useful. Logistic
+Regression is used in binary classification, the kind of problem where we have
+an input and want to predict between $0$ or $1$. An example could be an image
+and we want to say it what's a cat ($1$) or not ($0$).
+
+Basicly we want an algorhthm to estimate the probability of $y=1$ given $x$. In
+math we write:
+\[
+    \hat{y}=P(y=1\cond x),\t\t x\in\R^{n}
+\]
+
+Logistic Regression estimates this quantity using the formula:
+
+\[
+    \hat{y}=\sigma(w^{T}x+b),
+\]
+where $w$ and $b$ are parameters to be discovered and $\sigma$ is the
+\textbf{sigmoid function}:
+
+\[
+    \sigma(z) = \dfrac{1}{1+e^{-z}}
+\]
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.7]{Res/sigmoid.png}
+\caption{A sigmoid graph.}
+\label{sigmoid.png}
+\end{figure}
+
+It's also common to create a new input $x_0=1$ and use the $x$ vector as
+$x\in\R^{n+1}$ and use the formula $\hat{y}=\sigma(\theta^{T}x)$, where
+
+\[
+\theta=\begin{bmatrix}
+    \theta_0 \\ \theta_1 \\ \theta_2 \\ \vdots \\ \theta_n
+\end{bmatrix}\t \theta_0=b\t w=\begin{bmatrix}
+    \theta_1 \\ \theta_2 \\ \vdots \\ \theta_n
+\end{bmatrix}
+\]
+
+To find the parameters $b$ and $w$, we need to define a \textbf{cost function},
+which is a function that says how badly our algorithm is performing. This is a
+function that we want to minimize and when we minimize, we find the best values
+of $b$ and $w$.
+
+The \textbf{cost} function is a function of all training examples, while a
+\textbf{loss function} or \textbf{error function} is a function of a single
+traning example that measures how well our algorithm is performing.
+
+For logistic regression, we use the loss function:
+
+\[
+    \mathcal{L}(\hat{y},y)=-y \log\hat{y}-(1-y)\log(1-\hat{y})
+\]
+
+Notice that this is the same as:
+\[
+    \mathcal{L}(\hat{y},y)=\begin{cases}
+        -\log(\hat{y}-1), &\text{ if } y=0\\
+        -\log\hat{y}, &\text{ if } y=1\\
+    \end{cases}
+\]
+
+That give us the cost function:
+\[
+    J(w,b)=\dfrac{1}{m}\spsum{i=1}{m}\mathcal{L}(\xii[\hat{y}]{i},\xii[y]{i})
+\]
+
+\subsection{Gradient Descent}%
+\label{sub:gradient_descent}
+
+We know have:
+\begin{itemize}
+    \item A way of predicting the classes $0$ or $1$ using the sigmoid function;
+    \item A way of measuring the error of our predictions.
+\end{itemize}
+
+What we need now is a way of chaning our parameters $b$ and $w$ in order to
+minimize the error. That's what the \textbf{gradient descent} algorithm does.
+
+Let's first see a general graph of the cost function. In general, it looks like
+figure \ref{Cost_function.png}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.8]{Res/Cost_function.png}
+\caption{A generic graph of the cost function.}
+\label{Cost_function.png}
+\end{figure}
+
+We see that $J$ is what we call a \textbf{convex function}, which means that it
+is a function that was only one \textbf{local minimum} (or local maxima). This
+property is very important if we want to apply the gradient descent algorithm.
+
+In Gradient Descent, we initialize $b$ and $w$ randomly and take steps into the
+direction that leads us to the lowest possible value of $J$. In order to do
+that, we calculate the \textbf{gradient} (the derivatives in each direction) of
+the function $J$ and take a step in the opposite direction of the gradient.
+
+\begin{prop}
+The gradient gives us the direction of the maximum increase of the a function.
+\end{prop}
+
+\begin{algorithm}[Gradient Descent]
+Repeat \{ \nl
+\t $w:=w-\alpha\parderiv[w]{J(w,b)}$ \nl
+\t $b:=b-\alpha\parderiv[b]{J(w,b)}$ \nl
+\}
+\end{algorithm}
+
+In the algorithm, $\alpha$ is what we call the \textbf{learning rate}. It's how
+large we should step in the direction of the maximum decrease. If we take big
+steps, we can go much faster to the global minumum, but we might not be so
+accurated. On the other hand, we be take small steps, we can find the global
+minum accuratedly, but achieve it much slower.
+
+Gradient Descent is a general optimization algorithm and can be applied to any
+convex function. So now we need to understand how to use it with logistic
+regression.
+
+After calculating the derivatives, we'll have:
+
+\begin{algorithm}[Gradient Descent for Logistic Regression]
+Repeat \{ \nl
+\t$J=0;~dw=0;~db=0$ \nl
+\t For $i=1\cdots m$:\nl
+\t\t $\xii[z]{i}=w^{T}\xii[x]{i}+b$\nl
+\t\t $\xii[a]{i}=\sigma(\xii[z]{i})$\nl
+\t\t $J+=
+-\sbracket{\xii[y]{i}\log\xii[a]{i}+(1-\xii[y]{i})\log(1-\xii[a]{i})}$\nl
+\t\t $d\xii[z]{i}=\xii[a]{i}-\xii[y]{i}$\nl
+\t\t $dw += \xii[x]{i}d\xii[z]{i}$\nl
+\t\t $db += d\xii[z]{i}$\nl
+\t $J/=m$\nl
+\t $dw/=m;~db/=m$\nl
+\t $w:=w-\alpha dw$ \nl
+\t $b:=b-\alpha db$ \nl
+\}
+\end{algorithm}
+
+This version of the algorithm uses a for loop to compute $J$, $dw$ and $db$. But
+when implementing the code into Python or other language, we always try to
+\textbf{vectorize} the code to make it faster.
+
+\begin{algorithm}[Gradient Descent for Logistic Regression Vectorized]
+Repeat \{ \nl
+\t $Z=w^{T}X+b$ \nl
+\t $A=\sigma(Z)$ \nl
+\t $dZ = A - Y$ \nl
+\t $dw = \dfrac{1}{m}XdZ^{T}$ \nl
+\t $db = \dfrac{1}{m}\spsum{}{}dZ$ \nl
+\t $w:=w-\alpha dw$ \nl
+\t $b:=b-\alpha db$ \nl
+\}
+\end{algorithm}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
