@@ -346,6 +346,233 @@ Repeat \{ \nl
 \}
 \end{algorithm}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Basical Concepts}%
+\label{cha:basical_concepts}
+
+So let's start introducing some notation.
+
+Whenever we use:
+\[
+    \xlayer[z]{i}
+\]
+
+we're talking about the $z$ values of the $i$-th \textit{layer} of the neural
+network.
+
+Thus, we have the following important equation:
+
+
+\begin{equation}
+\boxed{
+    \xlayer[z]{i} = \xlayer[W]{i}\xlayer[a]{i-1} + \xlayer[b]{i}}
+\label{forward-z}
+\end{equation}
+
+\begin{equation}
+\boxed{
+    \xlayer[a]{i} = \sigma(\xlayer[z]{i})}
+\label{foward-activation}
+\end{equation}
+
+\section{Representation}%
+\label{sec:representation}
+
+Let's ilustrate a simple neural net:
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/nn_representation.png}
+\label{nn_representation.png}
+\end{figure}
+
+This nn is divided into three parts:
+\begin{itemize}
+    \item The \textbf{input layer} is the layer were we enter the data, the
+        features.  It's represented by a single vector $x$, which is a column of
+        our inputs matrix $X$. Another way to denote the input is by
+        $\xlayer[a]{0}$;
+    \item The \textbf{output layer} is the layer were we get our answer. It can
+        be one of more nodes and it's represented by a single vector $y$. It can
+        be a binary vector, continuous vector, it could be even a codification
+        of an image, sound, word or any codification just like the input;
+    \item Finally, the \textbf{hidden layer} are all the nodes which are between
+        the input and output, they are the intermediately computations that our
+        neural net does. We don't need to stick to just one hidden layer, there
+        could be many of them.
+\end{itemize}
+
+One more thing to keep in mind is that the neural network drawn in the picture
+is called a \textit{two layer} neural network, because we don't count the input
+layer as a ``real'' layer (it's the layer zero).
+
+Each layer (real layer) will have \textbf{parameters} associated with them,
+which we'll denote $\xlayer[W]{i}$ and $\xlayer[b]{i}$ for the $i$-th layer.
+
+To understand what are node computes given an input, let's focus in the first
+node of the hidden layer in the figure. We can see that the inputs $x_1,x_2,x_3$
+are all passed to that node, which uses tham to output something to the node in
+the output layer (or it could be outputed to the next hidden layer).
+
+So basicaly a node is a logistic regression, it computes:
+\[
+    a = \sigma(Wx+b)
+\]
+
+But as we have many computations like this, we have to use indeces to denote the
+first hidden layer and the first node of that layer. So the computations would
+be described as following:
+
+\[
+\xlayer[z]{1}_1=\xlayer[W]{1}_1^{T}x+\xlayer[b]{1}_1
+\]
+\[
+\xlayer[a]{1}_1=\sigma(\xlayer[z]{1}_1)
+\]
+
+The superscript means we're talking about the first (real) layer and the
+subscript means we're talking about the first node of that layer. Therefore
+$\xlayer[a]{l}_i$ is the \textbf{activation value} (output value) of the $i$-th
+node in the $l$-th layer.
+
+Of course, when coding a neural network, we don't compute each one of these
+equations using a for loop, we vectorize in order to compute the whole vector
+$\xlayer[z]{l}$ at once using equation \ref{forward-z}.
+
+\paragraph{Vectorizing the input}%
+\label{par:vectorizing_the_input}
+
+Now, one more thing that we want is to be able to predict \textit{mulpible}
+inputs at once. Indeed we can do that with some vectorization. Let's see how.
+
+So let's recall that
+\[
+X = \begin{bmatrix}
+    | & | &  & | \\
+    \xii[x]{1} & \xii[x]{2} & \cdots & \xii[x]{m} \\
+    | & | &  & | \\
+    \end{bmatrix}
+\]
+and let's define a matrix $\xlayer[Z]{l}$ in which the $j$-th column is the
+vector $z^{[l](j)}$ (i.e., the value before the activation function of the layer
+$l$ when applied to the input $j$).
+
+\[
+\xlayer[Z]{l} = \begin{bmatrix}
+    | & | &  & | \\
+    z^{[l](1)} & z^{[l](2)} & \cdots & z^{[l](m)} \\
+    | & | &  & | \\
+    \end{bmatrix}
+\]
+
+and also define the matrix $\xlayer[A]{l}$, which is $\sigma(\xlayer[Z]{l})$:
+
+\[
+\xlayer[A]{l} = \begin{bmatrix}
+    | & | &  & | \\
+    a^{[l](1)} & a^{[l](2)} & \cdots & a^{[l](m)} \\
+    | & | &  & | \\
+    \end{bmatrix}
+\]
+
+We can see that each row of matrix $A$ tell us the activation value for a
+particular node of that layer for each input. For instance, the value
+$A^{[l]}_{i,j}$ is the value of the $i$-th neuron in the $l$-th layer of the
+neural network when we input the $j$-th input.
+
+Given these matrices, we can train over all inputs using the vectorized formula:
+
+\begin{equation}
+    \boxed{\xlayer[Z]{l}=\xlayer[W]{l}\xlayer[A]{l-1}+\xlayer[b]{l}}
+\end{equation}
+
+\begin{equation}
+    \boxed{\xlayer[A]{l}=\sigma(\xlayer[Z]{l})}
+\end{equation}
+
+and recall that $X=\xlayer[A]{0}$.
+
+\section{Activation Functions}%
+\label{sec:activation_functions}
+
+The \textbf{activation function} is the function $g$ applied to $z$. We've
+been currently using the \textit{sigmoid function} $\sigma$, but there are some
+other functions that can be used and can significatly change our results and
+performances.
+
+Another function one can use is the $\tanh$ function, given by the formula:
+\[
+    \tanh(z) = \dfrac{e^{z}-e^{-z}}{e^{z}+e^{-z}}
+\]
+
+which is a shifted version of the sigmoid function. We have $\tanh(0)=0$ instead
+of $\sigma(0)=0.5$.
+
+It turns out that the $\tanh$ function frequently works better than the sigmoid,
+because the values are between $-1$ and $1$ instead of $0$ and $1$ and thus the
+average values tend to be closer to zero.
+
+The exception is for the output layer, where it's good to have a number between
+$0$ and $1$ in many cases, so we could keep using the sigmoid function there and
+use the tanh on the hidden layers.
+
+One of the down sides of these two functions is that when $z$ is very large, the
+gradient is very small, because they're very flat for large (positive or
+negative) values of $z$.
+
+That's why many times we see the \textbf{ReLU} (rectified linear unit) function
+being used:
+
+\[
+    ReLU(z) = \dmax(0,z)
+\]
+
+Indeed the ReLU is the most used activation in practice and should be the first
+choise. One of the only down sides of it is that the derivative for values lower
+than zero is zero, but it works fine in practice.
+
+There's modified version of the ReLU called \textbf{Leaky ReLU}, which is given
+by:
+
+\[
+    LReLU(z) = \dmax(0.01z,z)
+\]
+
+It's just like the ReLU function, but it's not zero for any negative value of
+$z$ and, thus, the derivative is not null on those points. Actually, indeed
+there no reason for the $0.01$, it could be any small value and we can turn that
+into a hyperparameter of our algorithm.
+
+\paragraph{Why activation functions}%
+\label{par:why_activation_functions}
+
+Now that we've seen so many activation functions we might want to understand why
+do we even need them. And most importantly, why do we need they to be
+non-linear.
+
+We could try using $a=g(z)=z$ (i.e., doing nothing). It turns out that if we
+have just the identity function, we can't express \textit{complex} (non-linear)
+decision boundaries.
+
+We'll not prove it here, but if we just use a linear function in all hidden
+nodes and a sigmoid, it is equivalent to a standard logistic regression in terns
+of what it can express.
+
+\begin{align*}
+\xlayer[a]{1}&=\xlayer[w]{1}x+\xlayer[b]{1} \\ \\
+\xlayer[a]{2}&=\xlayer[w]{2}\xlayer[a]{1}+\xlayer[b]{2} \\
+             &=\xlayer[w]{2}\paren{\xlayer[a]{1}=\xlayer[w]{1}x+\xlayer[b]{1}}+
+             \xlayer[b]{2} \\
+             &=\paren{\xlayer[w]{2}\xlayer[w]{1}}x+
+             \paren{\xlayer[w]{2}\xlayer[b]{1}+\xlayer[b]{2}}=\\
+             &=w'x+b'
+\end{align*}
+
+Above we can see that from one layer to the next we still have a linear
+equation (a composition of two linear functions is a linear function).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
