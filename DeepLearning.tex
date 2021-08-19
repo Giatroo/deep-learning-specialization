@@ -572,6 +572,118 @@ of what it can express.
 Above we can see that from one layer to the next we still have a linear
 equation (a composition of two linear functions is a linear function).
 
+\section{Backpropagation}%
+\label{sec:backpropagation}
+
+Now we're going to understand how to find the optimal values for $W$ and $b$
+using backpropagation.
+
+The first step in this direction is calculating the derivative of the activation
+functions. So let's to it.
+
+\paragraph{Sigmoid}%
+\label{par:sigmoid}
+
+\[
+    g(z)=\dfrac{1}{1+e^{-z}}
+\]
+\begin{align*}
+    \deriv[z]{g(z)}&=\dfrac{1}{1+e^{-z}}\paren{1-\dfrac{1}{1+e^{-z}}} \\
+                   &= g(z)(1-g(z))
+\end{align*}
+
+\paragraph{Tanh}%
+\label{par:tanh}
+
+\[
+    g(z)=\tanh(z)
+\]
+\begin{align*}
+    \deriv[z]{g(z)}&=1-\paren{\tanh(z)}^2 \\
+                   &=1-g(z)^2
+\end{align*}
+
+\paragraph{ReLU}%
+\label{par:relu}
+
+\[
+    g(z)=\dmax(0,z)
+\]
+\[
+    \deriv[z]{g(z)}=\begin{cases}
+        0, &\text{ if }z<0 \\
+        1, &\text{ if }z>0 \\
+        \text{undef}, &\text{ if }z=0
+    \end{cases}
+\]
+
+\paragraph{Leaky ReLU}%
+\label{par:leaky_relu}
+
+\[
+    g(z)=\dmax(0.01z,z)
+\]
+\[
+    \deriv[z]{g(z)}=\begin{cases}
+        0.01, &\text{ if }z<0 \\
+        1, &\text{ if }z>0 \\
+        \text{undef}, &\text{ if }z=0
+    \end{cases}
+\]
+
+Now let's understand how to do \textbf{gradient descent}.
+
+Let's denote $L$ the number of layers of our network. Them, the last value
+derivative (the first we're going to compute) is given by the formula:
+
+\begin{equation}
+    \xlayer[dz]{L}=\xlayer[a]{L}-y
+    \label{last-dz}
+\end{equation}
+
+The values of $dW$ and $db$, for any layer are given by the formulas:
+
+\begin{align}
+    \xlayer[dW]{l}&=\xlayer[dz]{l}\xlayer[a]{l-1}^{T} \\
+    \xlayer[db]{l}&=\xlayer[dz]{l}
+    \label{dW-db}
+\end{align}
+
+The other values of $dz$ for any layer other than the output layer are given by
+the formulas:
+
+\begin{equation}
+    \xlayer[dz]{l}=\xlayer[W]{l+1}^{T}\xlayer[dz]{l+1}*
+    \xlayer[g]{l}'\paren{\xlayer[z]{l}}
+    \label{dz-equation}
+\end{equation}
+
+where $*$ denotes que \textit{element-wise} product.
+
+There's also a vectorized way of computing this for all the training examples at
+once.
+
+\begin{align}
+    \xlayer[dZ]{L}&=\xlayer[A]{L}-Y \\
+    \xlayer[dW]{l}&=\dfrac{1}{m}\xlayer[dZ]{l}\xlayer[A]{l-1}^{T} \\
+    \xlayer[db]{l}&=\dfrac{1}{m}\text{sum}\paren{\xlayer[dZ]{l}, \text{axis=1})}
+        \\
+    \xlayer[dZ]{l}&=\xlayer[W]{l+1}^{T}\xlayer[dZ]{l+1}*
+    \xlayer[g]{l}'\paren{\xlayer[Z]{l}}
+\end{align}
+
+\section{Random Initialization}%
+\label{sec:random_initialization}
+
+Finanlly, we need to initialize the parameters of the neural network. It turns
+out that initializing everything as zero or everything as the same number, then
+all nodes of a layer will be exactly the same even with many iterations of
+gradient descent.
+
+For the values of $b$, we can initialize with zero, but for $W$, we prefer to
+initialize with \textit{small} random numbers. We like the numbers to be small
+though because if we're using $\tanh$ or $\sigma$, big numbers will have a very
+plat derivative and, thus, the algorithm will learn slower.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
