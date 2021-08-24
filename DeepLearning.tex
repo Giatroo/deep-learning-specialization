@@ -685,6 +685,21 @@ initialize with \textit{small} random numbers. We like the numbers to be small
 though because if we're using $\tanh$ or $\sigma$, big numbers will have a very
 plat derivative and, thus, the algorithm will learn slower.
 
+\section{Notation for deep neural networks}%
+\label{sec:notation_for_deep_neural_networks}
+
+We'll use $L$ to describe the number of layers the neural network have
+(remember, the input layer is not a real layer).
+
+$\xlayer[n]{l}$ denotes the number of nodes on layer $l$.
+
+$\xlayer[a]{l}$ denotes the activation values on layer $l$.
+
+$\xlayer[g]{l}$ denotes the activation function used on layer $l$.
+
+Also, the dimensions of $\xlayer[W]{l}$ and $\xlayer[b]{l}$ are
+$\pair{\xlayer[n]{l}}{\xlayer[n]{l-1}}$ and $\pair{\xlayer[n]{l}}{1}$.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
