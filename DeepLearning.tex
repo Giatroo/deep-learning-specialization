@@ -702,4 +702,110 @@ $\pair{\xlayer[n]{l}}{\xlayer[n]{l-1}}$ and $\pair{\xlayer[n]{l}}{1}$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\chapter{Practical Aspects of Deep Learning}%
+\label{cha:practical_aspects_of_deep_learning}
+
+In this chapter we're going to focus on the practical aspects of deep learning,
+like how to choose the hyperparameters, how to make the code faster, how to
+apply regularization and others.
+
+The first thing to understand is that, in practical, we divide our data set
+into three:
+\begin{itemize}
+    \item \textit{Training set}, in which we're going to train the model;
+    \item \textit{Hold-out cross validation set (or dev set)}, in which we're
+        going to evaluate our model and choose hyperparameters;
+    \item \textit{Test set}, in which we're going to evaluate our final model,
+        with the hyperparameters setted.
+\end{itemize}
+
+In the previous era of Machine Learning, we would use $70\%$ for the
+training/dev sets and $30\%$ for testing, or $60/20/20\%$. But now in the big
+data era, we can use much small fractions for the testing and hold-out sets
+(like $1\%$ or even less, since this can be equivalent to about $10000$
+examples).
+
+Another important thing to keep in mind is that the training set and test set
+must have the \textit{same distribution} of that. For instance, if we train on
+images of cats coming from the web, than we should not test on images of cats
+coming from mobile cameras.
+
+\section{Regularization}%
+\label{sec:regularization}
+
+We've seen that the cost function of our neural network is a function $J$ such
+that:
+
+\[
+    J\paren{\xlayer[W]{1},\xlayer[b]{1},\cdots,\xlayer[W]{L},\xlayer[b]{L}}=
+    \dfrac{1}{m}\spsum{i=1}{m}\mathcal{L}(\hat{\xii[y]{i}},\xii[y]{i})
+\]
+
+\textbf{Regularizing} a neural net model means adding a penality when the model
+makes $\xlayer[W]{i}$ bigger. This helps the model to prevent overfitting.
+
+Thus, we have:
+\[
+    J\paren{\xlayer[W]{1},\xlayer[b]{1},\cdots,\xlayer[W]{L},\xlayer[b]{L}}=
+    \dfrac{1}{m}\spsum{i=1}{m}\mathcal{L}(\hat{\xii[y]{i}},\xii[y]{i})
+    + \dfrac{\lambda}{2m}\spsum{l=1}{L}\norm{\xlayer[W]{l}}^2
+\]
+
+Where
+
+\[
+\norm{\xlayer[W]{l}}^2=\spsum{i=1}{\xlayer[n]{l}}\spsum{j=1}{\xlayer[n]{l-1}}
+\paren{\xlayer[W]{l}_{i,j}}^2
+\]
+
+is called the \textit{Frobenius norm} (sometimes we write
+$\norm{\xlayer[W]{l}}^2_F$).
+
+Here $\lambda$ is called the \textbf{regularization factor} and the bigger it
+is, the more we penalise the model for having bigger $\xlayer[W]{i}$. \jump
+
+Another kind of regularization is called \textbf{dropout regularization}. In
+this kind of regularization, we set a small probability of removing a node at
+all and have a new smaller network.
+
+One way to implement it is called \textit{inverted dropout}.
+
+\begin{lstlisting}[language=python]
+l = 3
+keep-prob = 0.8
+d3 = np.random.rand(a3.shape[0]. a3.shape[1]) < keep-prob
+a3 = np.multiply(a3, d3)
+a3 /= keep-prob
+\end{lstlisting}
+
+The last line is used to keep the espected value of $a$ the same, so we keep the
+same scale of $z$ when doing $z=wa+b$.
+
+When using dropout, though, we \textit{don't apply it when using the neural net
+to predict values}.
+
+To explain intuitively why dropout works, we need to think about the nodes
+connected to a particular node. If the NN just give importance to one of the
+those nodes, then it might be dropped and the model will perform poorly.
+Therefore, to work well, the model needs to spread the weights into all the
+neurons, shirking them.
+
+There are other ways to perform regularization.
+
+\textbf{Data augmentation} is when we change the data to get more data. For
+instance, if we have a image dataset, we can flip the images, reduce saturation,
+blur the image, and do many other things to get more images to train the make
+our mode better.
+
+If we have a sound dataset, we can make the sound loud, or add noise, supression
+and so on.
+
+\textbf{Early stopping} is when we stop iterating our model using the error in
+the dev set. While the error in the train error one decreases, the error in the
+dev set tends to decrease for a while and than starts incrasing. What early
+stopping does is stop iterating the model when the error in the dev set starts
+increasing.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{document}
