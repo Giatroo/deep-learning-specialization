@@ -806,6 +806,139 @@ dev set tends to decrease for a while and than starts incrasing. What early
 stopping does is stop iterating the model when the error in the dev set starts
 increasing.
 
+\section{Optimizing the Problem}%
+\label{sec:optimizing_the_problem}
+
+\subsection{Normalizing input}%
+\label{sub:normalizing_input}
+
+Normalizing the input is very important because it garantees to us that the
+input data will have zero mean and variance one. To perform normalization, we
+calculate:
+\[
+\mu=\dfrac{1}{m}\spsum{i=1}{m}\xii[x]{i}
+\]
+and
+\[
+\sigma^2=\dfrac{1}{m}\spsum{i=1}{m}\xii[x]{i}^2
+\]
+
+where $\xii[x]{i}^2$ mean elementwise power.
+
+Please note that these values are calculated using the \textit{training set}.
+And them we'll apply the below formula to \textit{every} input that we'll feed
+into the network (it can come from the training, dev or test set).
+
+\[
+x:=\dfrac{x-\mu}{\sigma}
+\]
+
+Normalizing the input is important because it garantees that Gradient Descent
+will converge much faster, since $J$ will have a more circular bow shape, since
+of a elliptical one.
+
+\subsection{Vanishing / Exploding Gradients}%
+\label{sub:vanishing_exploding_gradients}
+
+In this section we're going to cover a problem that we can face when traning
+neural networks. Sometimes, the gradients become too small or too big and we
+can't training anything at all.
+
+To understand that, suppose we have a very deep neural network. It's not so hard
+to imagine that as computations are performed upon computations, we can get very
+large or very small numbers for values like the activation function.
+
+For instance, suppose all $\xlayer[W]{l}$ have values of $1.5$ then if we don't
+use an activation function, our final output will be something proportional to
+$\xlayer[W]{1}\xlayer[W]{2}\cdots\xlayer[W]{L}$, which will me proportional to
+$1.5^{L}$. If $L$ is very big, this can be huge.
+
+If we changed $1.5$ by $0.5$, then we would have amoust zero.
+
+To solve (parcially) this problem, we need to have a careful initialization of
+our weights.
+
+Let's just consider a single neuron. If we ignore $b$, then we have
+\[
+z = w_1x_1+w_2x_2+\cdots+w_nx_n
+\]
+
+The later $n$ is, the smaller we want $w_i$ to be, because we want $z$ to be
+approximately in the range $\sbracket{-1,1}$. One thing that we would wish is to
+have
+\[
+    \var{w_i}=\dfrac{1}{n}
+\]
+
+So we can initialize it like:
+\[
+    \xlayer[W]{i}=\text{np.random.randn(shape)}\cdot\text{np.sqrt}\paren{\dfrac{1}{\xlayer[n]{l-1}}}
+\]
+
+It turns out that if we are using ReLU, it's better to have a variance of
+$\dfrac{2}{n}$, so we can replace the one by $2$ in the sqrt.
+
+The variatian with $1$ is called the \textit{Xavier initialization}, but we can
+use another variatian in which we multiply by:
+\[
+\sqrt{\dfrac{2}{\xlayer[n]{l-1}+\xlayer[n]{l}}}
+\]
+
+These factors could all be used as a base model, but we can really tune this as
+a hyperparameter if we want, although it's not a very important hyperparameter.
+
+\subsection{Gradient Checking}%
+\label{sub:gradient_checking}
+
+A very common technique when using Gradient Descent is to use \textbf{Gradient
+Checking} to make sure our gradient computations are been performed right. It
+will not go to the final model, but we use it to make sure we've coded
+everything right.
+
+To do it, basicaly we approximate the gradients numericaly and compare with the
+gradient we're computing using the formulas. Of course we don't do that when we
+want to predict any value or use our model in the real world because we're
+computing the gradient two times (and computing it numericaly is not efficient).
+We just use this technique when coding the backpropagation to make sure we're
+doing it right.
+
+To approximate the gradient, it's very since, we just use:
+\[
+    g(\theta)\approx\dfrac{f(\theta+\epsilon)-f(\theta-\epsilon)}{2\epsilon}
+\]
+which is called \textit{two-sided approximation}.
+
+So the first thing in order to use gradient checking is to reshape our
+parameters $\xlayer[W]{1},\xlayer[b]{1},\cdots,\xlayer[W]{L},\xlayer[b]{L}$ into
+just one big vector $\theta$. And it's derivative will be $d\theta$
+
+Now we're going to compute $d\theta_{\approx}$ which can be computed
+doing:
+\[
+    d\theta_{\approx i}=
+    \dfrac{J(\theta_1,\theta_2,\cdots,\theta_i+\epsilon,\cdots,\theta_k)-
+              J(\theta_1,\theta_2,\cdots,\theta_i-\epsilon,\cdots,\theta_k)}
+              {2\epsilon}
+\]
+
+For each value of $i$.
+
+And what we want is
+\[
+d\theta_{\approx}\approx d\theta
+\]
+
+To now that, we can calculate:
+\[
+    \dfrac{\norm{d\theta_{\approx}-d\theta}}
+    {\norm{d\theta_{\approx}}+\norm{d\theta}} < \delta
+\]
+for a small value of $\delta$. It could be $10^{-7}$ to make sure it's really
+correct or $10^{-5}$. If the difference is greater than something like $10^{-3}$
+than probability we have a bug somewhere.
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
