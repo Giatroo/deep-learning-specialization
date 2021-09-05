@@ -937,7 +937,60 @@ for a small value of $\delta$. It could be $10^{-7}$ to make sure it's really
 correct or $10^{-5}$. If the difference is greater than something like $10^{-3}$
 than probability we have a bug somewhere.
 
+\section{Optimization Algorithms}%
+\label{sec:optimization_algorithms}
 
+In this section, we're going to view many algorithms that allow us to train much
+faster.
+
+\subsection{Mini-batch Gradient Descent}%
+\label{sub:mini_batch_gradient_descent}
+
+What we've been doing in terms of gradient descent so far is to process the
+whole training set to take a step in the opposite direction of the gradient.
+
+If $m$, our number of training exemples, is very large (which is normal in Big
+Data applications), then a single gradient step is very expensive.
+
+One way to optimize that is to use what's called \textbf{mini-batches}.
+Basically we split our training set into multiple training sets (if say $1000$
+examples) and we run each step of gradient descent using one of these sets.
+
+That's what we call an \textbf{epoch} of gradient descent (a pass of
+forward-prop, cost computation, back-prop and parameters update).
+
+Of course, by doing this, we're not optimizing the original $J$ function (which
+is computed for every training example). However, we'll get a low cost model at
+the end.
+
+If we plot the cost of $J$ at each iteration (epoch), we'll not have that
+classical curve in which $J$ decreases at each iteration. The curve will be a
+little noisy, increasing and decreasing. But in the long run, it'll converge to
+some low value. And not just that, it does it much faster than the original
+gradient descent (which is also called \textbf{batch gradient descent}).
+
+One important concept to mention is the size of the mini-batches. If the size is
+one, than we call the algorithm \textbf{stochastic gradient descent}. This will
+make our epochs really fast, but we'll lead to an algorithm with a much higher
+cost than we could get using greater batches. Stochastic gradient descent will
+be \textit{around} the minimum optima of $J$. The greater our mini-batches are,
+the more closer the that mininum optima we'll lead. That's the trade-off between
+speed and precision.
+
+We can also train with mini-batch until the cost is very close to the mininum
+optima and then change to batch gradient descent and run some more epochs to
+make sure that our algorithm is really precise.
+
+In practical, because how the computer memory and vectorization works, people
+tend to use powers of two for the size of the mini-batches. So that's a thing to
+keep in mind. Common values are $2^{6}$ up to $2^{9}$.
+
+\subsection{Exponentially weighted averages}%
+\label{sub:exponentially_weighted_averages}
+
+Now we're going to cover other optimization algorithms that are better than
+gradient descent. But to understand them, we need to talk about a concept of
+statistics which is called \textbf{exponentially weighted (moving) averages}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
