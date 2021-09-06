@@ -992,6 +992,119 @@ Now we're going to cover other optimization algorithms that are better than
 gradient descent. But to understand them, we need to talk about a concept of
 statistics which is called \textbf{exponentially weighted (moving) averages}.
 
+To understand that, let's use an example. We'll plot the temperatures over the
+days.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/temperatures-london.png}
+\label{temperatures-london.png}
+\end{figure}
+
+Here we sse that the values are very noisy, going up and down on each day.
+However, if we want to visualize the \textit{trend} of the values, we can apply
+the moving average technique.
+
+Basicaly, instead of plotting these points (let's call them $\theta_i$), we'll
+plot $V_i$.
+
+First, we initialize $V_0$ as zero.
+\[
+V_0=0
+\]
+
+then, we get the next value by averaging the previous value of $V_i$ and the
+current value of $\theta_i$.
+\[
+V_1=0.9V_0+0.1\theta_1
+\]
+a general formula would be:
+\[ \boxed{
+    V_i = 0.9V_{i-1}+0.1\theta_i
+}\]
+
+If we compute and plot that, we'll get figure \ref{temperature-average.png}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/temperature-average.png}
+\caption{The moving average of the temperatures.}
+\label{temperature-average.png}
+\end{figure}
+
+We see that we got a much more smooth curve because we're always considering the
+previous value to create the next one. We could make the formula even more
+general:
+\[ \boxed{
+        V_i=\beta V_{i-1}+(1-\beta)\theta_i
+}\]
+
+where $\beta$ is the percentage of how much we would like to consider the
+previous value.
+
+Indeed the value of $\beta$ will dictate approximately how many previous
+iterations we're considering on each point. To have an idea of how many previous
+points we're considering, we use the formula
+\[
+\dfrac{1}{1-\beta}
+\]
+
+Therefore, for $\beta=0.9$, we're considering approximately the $10$ previous
+temperatures in order to get the current value. That's why it's called a
+\textit{moving} average or a \textit{local} average.
+
+The lower $\beta$ is, the less temperatures we'll be considering on each
+average and, therefore, the faster those averages will change, leading to a
+noiser curve, but that adapts faster. And if $\beta$ is big, we'll be
+considering more days and, therefore, the average will change more slowly,
+leading to a smoother curve that has some latency to adapt to new trends.
+
+This value will be a hyperparameter in our models.
+
+To understand a little better this algorithm, let's try to get a non-iterative
+formula. We'll get something like:
+
+\[
+V_i=0.1\theta_i + 0.1\times 0.9\theta_{i-1} + 0.1\times 0.9^2\theta_{i-2} +
+\cdots + 0.1\times 0.9^{k}\theta_{i-k}+\cdots
+\]
+
+So, indeed, we're calculating $V_i$ as an average of \textit{all} previous
+values. But the farest the values are from the current we're calculating, the
+less impact it have on the current one. Indeed, we see that the influence decays
+\textit{exponentially} (that's why this term apears in the name).
+
+If we sum all coeficients, we would except to get exactly $1$, since this is an
+average. But unfortunatelly, that's not what happens. In fact, we say that this
+is approximately an average, because we're missing an \textbf{bias term}.
+
+However, using this kind of average is very good computacionally, because we
+don't have to keep track of (say) the last $n$ terms to compute a local average.
+We can do that in $O(1)$ for each element.
+
+If we would implement this algorithm, it would be like:
+
+\begin{algorithm}[Exponentially weighted averages]
+$V_\theta = 0$ \nl
+Repeat \{ \nl
+\t $V_\theta := \beta V_\theta + (1-\beta)\theta_t$ \nl
+\}
+\end{algorithm}
+
+As one can see, this algorithm is very memory and time efficient.
+
+Finally, we can make a correction to the bias term by dividing $V_i$ by
+$1-\beta^{i}$.
+
+So we can use the formula:
+\[
+    V_i = \dfrac{\beta V_{i-1} + (1-\beta)\theta_i}{1-\beta^{i}}
+\]
+
+This will help a lot in the first iterations where we still don't have many
+values in the window. Think of it as $1-\beta^{i}$ being a good approximation
+for the sum of the coefficient of the average.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
