@@ -1105,6 +1105,112 @@ This will help a lot in the first iterations where we still don't have many
 values in the window. Think of it as $1-\beta^{i}$ being a good approximation
 for the sum of the coefficient of the average.
 
+\subsection{Gradient Descent with Momentum}%
+\label{sub:gradient_descent_with_momentum}
+
+The first algorithm we'll see is \textbf{gradient descent with momentum}.
+Basicaly, instead of using the derivatives in each iteration, we're going to
+average the derivatives using exponentially weighted averages to get a more
+smooth descent to the minimum. This algorithm works pretty much always better
+than normal gradient descent.
+
+\begin{algorithm}[Gradient Descent with Momentum]
+On iteration $t$: \nl
+\t Compute $dW, db$ on current batch (or mini-batch) \nl
+\t $V_{dW}=\beta V_{dW} + (1-\beta)dW$ \nl
+\t $V_{db}=\beta V_{db} + (1-\beta)db$ \nl
+\t $W=W-\alpha V_{dW}$ \nl
+\t $b=b-\alpha V_{db}$ \nl
+\end{algorithm}
+
+This averaging over the last $k$ derivatives makes our algorithm take this
+\textit{momentum}, which is going to create speed into the minimum direction,
+avoiding oscilations in other directions like standart gradient descent does.
+
+The downside of this algorithm is that now we have two hyperparameters instead
+of just one: $\alpha$ and $\beta$. In practice, values close to $\beta=0.9$ work
+good.
+
+One more note is that in practice people tend to not use \textit{bias
+correction} because after just $10$ or so iterations the algorithm will have a
+very small bias value.
+
+\subsection{RMSprop}%
+\label{sub:rmsprop}
+
+\textbf{RMSprop} which means for Root-Mean-Square prop. It also speed gradient
+descent by ``normalizing'' the different directions. To do that, it takes the
+element-wise square of the gradient, average it over the last $k$ squares and
+than divide the gradient by the squareroot of that.
+
+\begin{algorithm}[RMSprop]
+On iteration $t$: \nl
+\t Compute $dW, db$ on current batch (or mini-batch) \nl
+\t $S_{dW}=\beta V_{dW} + (1-\beta)dW^2$ \nl
+\t $S_{db}=\beta V_{db} + (1-\beta)db^2$ \nl
+\t $W=W-\alpha \dfrac{dW}{\sqrt{S_{dW}+\epsilon}}$ \nl
+\t $b=b-\alpha \dfrac{db}{\sqrt{S_{db}+\epsilon}}$ \nl
+\end{algorithm}
+
+The $\epsilon$ value here is just to garantee we're not dividing by zero.
+
+\subsection{Adam}%
+\label{sub:adam}
+
+\textbf{Adaptative moment estimation} optimization algorithm will basicaly take
+the two previous ideas (momentum and rmsprop) and put them together. It's one of
+the best algorithms known so far along RMSprop.
+
+\begin{algorithm}[Adam]
+$V_{dW}:=S_{dW}:=V_{db}:=S_{db}:=0$ \nl
+On iteration $t$: \nl
+\t Compute $dW, db$ on current batch (or mini-batch) \nl
+\t $V_{dW}=\beta_1 V_{dW} + (1-\beta_1)dW$ \nl
+\t $V_{db}=\beta_1 V_{db} + (1-\beta_1)db$ \nl
+\t $S_{dW}=\beta_2 V_{dW} + (1-\beta_2)dW^2$ \nl
+\t $S_{db}=\beta_2 V_{db} + (1-\beta_2)db^2$ \nl
+\t $V_{dW} = \dfrac{V_{dW}}{1-\beta_1^{t}}$ \nl
+\t $V_{db} = \dfrac{V_{db}}{1-\beta_1^{t}}$ \nl
+\t $S_{dW} = \dfrac{S_{dW}}{1-\beta_2^{t}}$ \nl
+\t $S_{db} = \dfrac{S_{db}}{1-\beta_2^{t}}$ \nl
+\t $W=W-\alpha \dfrac{V_{dW}}{\sqrt{S_{dW}+\epsilon}}$ \nl
+\t $b=b-\alpha \dfrac{V_{db}}{\sqrt{S_{db}+\epsilon}}$ \nl
+\end{algorithm}
+
+So as one can see, we're basicaly doing what we're doing in RMSprop, but now
+instead of using $dW,db$, we're using the average over the last $k$ values, just
+like in momentum.
+
+One more thing here is that we're using bias correction, which is very common to
+do in this algorithm.
+
+Now we have three hyperparameters: $\alpha,\beta_1,\beta_2$. In practice,
+$\alpha$ still needs to be tuned, and common values for the other two are
+$\beta_1=0.9$ and $\beta_2=0.999$. There's also the value of $\epsilon$, but
+this is very rare to chance. We usually use something like $\epsilon=10^{-8}$.
+
+\subsection{Learning Rate Decay}%
+\label{sub:learning_rate_decay}
+
+One more technique that can be used through all the optimization algorithms is
+\textbf{learning rate decay}. Basicaly, we slowly reduce the $\alpha$ parameter
+in our algorithm by the time. In the begining, we're far alway from the minimum,
+so we can set our learning rate higher and as we go towards the minimum, we
+reduce this learning rate to make it smaller and more precise. One way to do
+that, is to use the formula:
+
+\[
+\alpha=\dfrac{1}{\text{decay\_rate}\cdot\text{num\_epoch}}\cdot\alpha_0
+\]
+
+Other formulas use exponentially decay:
+\[
+\alpha=0.95^{\text{num\_epoch}}\cdot\alpha_0
+\]
+\[
+\alpha=\dfrac{k}{\sqrt{\text{num\_epoch}}}\cdot\alpha_0
+\]
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
