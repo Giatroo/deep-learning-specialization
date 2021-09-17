@@ -1211,6 +1211,185 @@ Other formulas use exponentially decay:
 \alpha=\dfrac{k}{\sqrt{\text{num\_epoch}}}\cdot\alpha_0
 \]
 
+\section{Hyperparameter tuning}%
+\label{sec:hyperparameter_tuning}
+
+We've seem so far that the algorithms have lots of hyperparameters to turn, like
+the number of layers, number of nodes in each layer, mini-bath sizes, $\alpha$,
+$\beta_1$, $\beta_2$. Also the decision of using one optimization algorithm
+instead of other could be considered as a hyperparameter.
+
+We need to understand how to select the values of the hyperparameters we're
+going to try. In the early machine learning times, we used a grid to try the
+hyperparameters. For instance, if we had $h_1$ and $h_2$, than we would say in
+each values of them we wanted to try. Let's say we want to try
+$h_1=\set{v_1,v_2,v_3}$ and $h_2=\set{u_1,u_2,u_3}$. Them we would try all the
+combinations of these values:
+\[
+    h_1\times h_2=\set{(v_1,u_1),(v_1,u_2),\cdots,(v_3,u_3)}
+\]
+
+This is good when the number of parameters is small. But in deep learning, the
+number of parameters tend to be large and, thus, we use random points (i.e., for
+each hyperparameter, we pick a random value in some region).
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/hyperparamter-search.png}
+\caption{In the left we see the Grid Search and in the right, we see the random
+search}
+\label{hyperparamter-search.png}
+\end{figure}
+
+Another good thing to do is to perform many hyperparameter searchs. In the first
+one, we can use larger scales for each hyperparameter and discover that the best
+value for, let's say, $\alpha$ is between $0.9$ and $1.1$. Than we can perform a
+new search sampling values of $\alpha$ just in that region and discover that the
+best value is approximately $0.96$.
+
+\subsection{Selection the appropriate scale for hyperparameters}%
+\label{sub:selection_the_appropriate_scale_for_hyperparameters}
+
+In many cases, we don't want to \textit{uniformily} sample values from a
+particular range. Suppose we use the range $\sbracket{0.0001, 1}$ for the
+learning rate $\alpha$. Then it's clear that most ($90\%$) of the time we'll
+select values between $0.1$ and $1$. That's not what we want. We want, to select
+values between $(0.0001,0.001)$, $(0.001,0.01)$, $(0.01, 0.1)$ and $(0.1,1)$ in
+the same proportion.
+
+Therefore, what we need to do is to sample using a \textit{logarithmic} random
+scale.
+
+To do that in python, one way is the following:
+\begin{lstlisting}[language=python]
+r = -4 * np.random.rand()
+alpha = 10 ** r
+\end{lstlisting}
+
+\paragraph{Scale for parameter $\beta$}%
+\label{par:scale_for_parameter_beta_}
+
+Another important topic is how to pick a scale for the parameter $\beta$. We've
+seem that $\beta=0.9$ means we're averaging over the $10$ previous gradients and
+if $\beta=0.999$, we're averaging over the last $1000$ gradients. So we want to
+have a linear sample \textit{in the number of gradients}. To do that, we can
+think in $1-\beta$ and get the interval $(0.1, 0.001)$. And just like in the
+example from above, we can use a logarithmic scale, but now reversed. Therefore,
+we use:
+\[
+\beta=1-10^{r}
+\]
+
+Instead of the code above.
+
+\section{Batch normalization}%
+\label{sec:batch_normalization}
+
+As we've seem before, input normalization can help a lot to optimize our
+algorithm and train faster. Another technique is called \textbf{batch
+normalization} in which normalize the values in between the hidden layers.
+
+So basicaly for each intermediate value $\xlayer[z]{l}$, we normalize it using:
+\[
+\mu=\dfrac{1}{m}\spsum{i}{}\xlayer[\xii[z]{l}]{i}
+\]
+\[
+    \sigma^2=\dfrac{1}{m}\spsum{i}{}\paren{\xlayer[\xii[z]{l}]{i}-\mu}^2
+\]
+\[
+\xlayer[\xii[z]{l}]{i}_{\text{norm}}=\dfrac{\xlayer[\xii[z]{l}]{i}-\mu}
+{\sqrt{\sigma^2+\epsilon}}
+\]
+
+But indeed, we don't want all the intermediate values to be normalized, so we
+do:
+\[
+\xlayer[\xii[\tilde{z}]{l}]{i}=\gamma\xlayer[\xii[z]{l}]{i}_{\text{norm}}+\beta
+\]
+
+where $\gamma$ and $\beta$ are learnable parameters of the model (using their
+gradient as with $W$ and $b$).
+
+This allows us to change the mean and variance of each layer to our benefit.
+
+Basicaly now, instead of doing this process:
+\[
+    X
+    \xrightarrow{\xlayer[W]{1},\xlayer[b]{1}}\xlayer[z]{1}
+    \xrightarrow{\xlayer[g]{1}}\xlayer[a]{1}
+    \xrightarrow{\xlayer[W]{2},\xlayer[b]{2}}\xlayer[z]{2}
+    \xrightarrow{\xlayer[g]{2}}\xlayer[a]{2}
+    \rightarrow\cdots
+\]
+
+We're doing:
+\[
+    X
+    \xrightarrow{\xlayer[W]{1},\xlayer[b]{1}}\xlayer[z]{1}
+    \xrightarrow{\xlayer[\gamma]{1},\xlayer[\beta]{1}}\xlayer[\tilde{z}]{1}
+    \xrightarrow{\xlayer[g]{1}}\xlayer[a]{1}
+    \xrightarrow{\xlayer[W]{2},\xlayer[b]{2}}\xlayer[z]{2}
+    \xrightarrow{\xlayer[\gamma]{2},\xlayer[\beta]{2}}\xlayer[\tilde{z}]{2}
+    \xrightarrow{\xlayer[g]{2}}\xlayer[a]{2}
+    \rightarrow\cdots
+\]
+
+And we can compute the gradient of all parameters to update each of them using
+Gradient Descent.
+
+\begin{obs}
+    We also need to say that indeed, when using batch normalization, we don't
+    need to use the $b$ parameter at all, because $\beta$ will always change it
+    before computing $a$. Therefore, the only parameters we need are
+    $W,\gamma,\beta$.
+\end{obs}
+
+\section{Multiclass problems}%
+\label{sec:multiclass_problems}
+
+So far, we've seem only how to do binary classification with neural nets. Now,
+let's see a logistic regression variatiante that allow us to have multiple
+classes: \textbf{softmax regression}.
+
+\begin{nota}
+\begin{itemize}
+    \item $C$ will denote the number of classes;
+    \item The classes will be numbers from $0$ to $C-1$.
+\end{itemize}
+\end{nota}
+
+The first modification we'll do is in the output layer. Now $\hat{y}$ will be a
+vector instead of a single number and $\hat{y}_i = p(i\cond x)$, i.e., the
+probability of class $i$ given the input $x$.
+
+We'll use an \textbf{softmax} layer in the output layer to achive such goal. To
+do so, we'll compute $\xlayer[z]{L}$ as usual and use the \textbf{softmax
+activation function}, which is:
+
+\begin{align*}
+    t &= e^{(\xlayer[z]{L})} \\
+    \hat{y}=\xlayer[a]{L} &= \dfrac{e^{(\xlayer[z]{L})}}{\spsum{i}{}t_i}
+\end{align*}
+
+As you can see, we basicaly compute this vector $t$ and divide by the sum of its
+components (it's like we were normalizing $t$).
+
+Indeed, if we sum the coordinates of $\hat{y}$, they'll add up to $1$.
+
+\section{Deep Learning Frameworks}%
+\label{sec:deep_learning_frameworks}
+
+We've learned so far how to program deep learning algorithms from scratch but
+there are several python frameworks that are used in practice when implementing
+these deep learnings algorithms.
+
+Some of the most used DL frameworks are:
+\begin{itemize}
+    \item Keras
+    \item TensorFlow
+    \item Torch
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
