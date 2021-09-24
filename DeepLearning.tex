@@ -1392,4 +1392,99 @@ Some of the most used DL frameworks are:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\chapter{Machine Learning Projects}%
+\label{cha:machine_learning_projects}
+
+In this chapter, we're going to focus on how to structure our machine learning
+projects so that we don't waste a lot of time (say) colleting data when the
+bottleneck say the number of layers or not regularizing.
+
+\section{Setting up your goal}%
+\label{sec:setting_up_your_goal}
+
+One of the first things we need to set up is a \textbf{single real value} as a
+metric goal. By donig this, one can evaluate the model and have a clear goal
+(improve $x\%$ of that metric).
+
+Also, sometimes we want to restric our model to certain conditions like
+\textit{running time}, we want it to be low. So we would just really care about
+our model it is runs in less than (say) $100$ ms. This kind of metric is called
+an \textbf{satisficing} metric, while the real value we said before is called an
+\textbf{optimizing} metric.
+
+We want to maximize (or minimize) the optimizing metric under the condition
+given by the satisficing metric.
+
+All these metrics must be calculated under a training set, or evaluation (dev)
+set or testing set. So let's talk a little about how to set these sets.
+
+Basicaly, the gold rule for when spliting the sets is to keep the same
+distribution in each one of them. If we have data of pictures of cats tha come
+from cellphone, regular cameras and profisional cameras, we want to have the
+same percentage of each of these types through all sets.
+
+\paragraph{When to change the evaluation metric?}%
+\label{par:when_to_change_the_evaluation_metric}
+
+Let's suppose that we have two algorithms A and B with $3\%$ and $5\%$
+classification errors respectively, but suppose that algorithm A is classifing
+wrongly photos of pornograph as photos of cats and would show it to the
+customers, which is a massive error to our company. Therefore, we prefer
+algorithm B even if it missclassifies more.
+
+When things like this happen, we need to either change our evaluation metric or
+change our dev and training sets to adapt to the kind of error we're having. One
+example is weighting the examples to make porn pictures have a very large error
+while non-porn pictures have a normal error.
+
+\section{Comparing to humam-performance}%
+\label{sec:comparing_to_humam_performance}
+
+One of the things we should aim when using a machine learning system to
+accomplish a certain goal is to check how well humans perform that goal. By
+doing this we can have a kind of standard line of what is a good or bad model. A
+good model is one that does the task better than us humans.
+
+When we look at the graph of accuracy of models over time, we see that it's very
+easy to surpass the human level of performance and than it starts to slow down
+the increase in performance until is barly reaches the maximum amount of
+performance, which is called the \textbf{Bayes optimal error}, which is a
+theorical best possible error.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.6]{Res/human-performance.png}
+\caption{}
+\label{human-performance.png}
+\end{figure}
+
+One nice trick that we can use for tasks that humans are good at is to use
+specific knowladge to see where the model are is getting things wrong and try to
+get more labeled examples for that situation in order to help the model. We also
+can look at the missclassified examples to check if the algorithm have a high
+bias or high variance.
+
+\paragraph{Avoidable bias}%
+\label{par:avoidable_bias}
+
+Understanding human level of performance is also important because we can
+estimate the bayes optimal error. If we know that humans have $1\%$ of error and
+our algorithm has $8\%$ of error in the training set and $10\%$ in the dev set,
+then we should try to reduce bias to achieve something closer to $1\%$.
+Meanwhile, if our algorithm had $1.5\%$ in the training set and $3\%$ in the dev
+set, then we should concentrate in reducing variance to make the $3\%$ closer to
+$1.5\%$.
+
+\paragraph{How to define human-level error/performance}%
+\label{par:how_to_define_human_level_error_performance}
+
+Let's say we have medical pictures to give a certain diagnostics. Then, to
+define human-level of error, we should get the best possible team of experienced
+doctors to discuss the pictures and give their opinions on that picture. The
+error that those people have will be lower than a typical doctor or a single
+experienced doctor. Therefore, we use this error as the goal.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{document}
