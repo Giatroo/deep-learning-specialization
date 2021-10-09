@@ -1484,6 +1484,399 @@ doctors to discuss the pictures and give their opinions on that picture. The
 error that those people have will be lower than a typical doctor or a single
 experienced doctor. Therefore, we use this error as the goal.
 
+\section{Error Analysis}%
+\label{sec:error_analysis}
+
+When we're trying to create an algorithm that does some kind of human task,
+manually checking the errors our algorithm is making can give us some insights
+of how to improve. This is called \textbf{error analysis}.
+
+One of the most simples things we can do in error analysis is check what are the
+classes that a classifier is mostly making mistakes. Than, we could focus on
+getting more examples of that class.
+
+Another example could be the case where many images with a white background are
+being missclassified. Thus, it could be a good ideia to collet more images with
+white background and train on those images.
+
+If we have some high percentage of error for many different kinds of imagens, we
+could also evaluate all those ideas im parallel, with many teams working on
+those different kinds of errors and trying to improve them.
+
+\paragraph{Incorrectly Labeled Data}%
+\label{par:incorrectly_labeled_data}
+
+In many cases, our algorithm can perform some errors because the training data
+itself has some misslabed examples. What should we do when we encounter that?
+
+The first thing to say is that DL algorithms are quite robust to random errors
+in the trainig set. If the erros are quite random, then it's oks to leave them
+as they are because this is probably not going to affect much the outputs.
+However, if the error has a bias (i.e., it's not random), then we definitely
+should fix those incorrectly labeled examples.
+
+For instance, if all white dogs are labeled as cats, them our algorithm will
+learn to classify white dogs as if they were cats.
+
+When doing error analysis, we create a table where the lines are the
+missclassified examples and the columns are the possible errors associated with
+that particular example. Then, we sum up all the ``checks'' in each column and
+see which errors are the most crucial to our application. If incorrectly labeled
+data is one of those things, we might add a column to check when that instance
+was misslabeled and, if at the end, there were a lot of them, we might separete
+a team to work on fixing those labels.
+
+\paragraph{Iterating}%
+\label{par:iterating}
+
+One important thing to do then building a machine learning project is to first
+build it quickly and them use error analysis to avaluate your model and improve
+it. After knowning where to improve, to that and repeat everything again.
+
+\section{Mismatched Training and Dev/Test Sets}%
+\label{sec:mismatched_training_and_dev_test_sets}
+
+In many cases, teams building Deep Learning systems just throw a bunch of
+instances into the training set to make it better. And in many of these
+situations, the training and dev/test sets will end up with different
+distributions. So how to deal with those cases?
+
+Suppose we have pictures of cats and $200,000$ of them come from the web, have a
+high resolution, where taken by professionals while just $10,000$ of them come
+from mobile app, by amartures that will use our app to predict if the image is a
+cat or not.
+
+Our final user will input a regular image, taken by a phone, while our main
+source of imagens aren't like that. So what do to?
+
+\textbf{Option 1} is to just mix these two kinds of imagens and shuffle them
+around the training, dev and test sets. Now we do have the same distribution of
+pictures, but we'll end up with a very small proportion of mobile photos in our
+dev and test sets, which is not what we want at all.
+
+\textbf{Option 2} is to just put all the imagens from the web into our training
+set together with some of the mobile images and leave the rest of the mobile
+images into the dev and test sets (so they'll end up with no web images).
+Suppose we use all the $200,000$ images from the web into the training set and
+add up more $5,000$ images from the mobile app, while the dev and testing set
+will have $2,500$ images from the mobile app each.
+
+\paragraph{Bias and Variance}%
+\label{par:bias_and_variance}
+
+One thing to notice is that bias and variance analysis will be different if we
+have mismatched training and dev/test sets. Before, we knew that if the training
+error is $1\%$ and the dev error is $10\%$, them we have a large variance and
+probably the algorithm is overfitting. But if the training and dev data come
+from different distributions, we can no longer say that. Maybe the dev set just
+has poor quality images and it's harder to predict them, we don't know.
+
+In order to accomplish this error, we can create a new set of data that we'll
+can it the \textit{training-dev set}, which has the same distribution of the
+training set, but it's not used for training. Now we use the training-dev to
+check problems like bias and variance and if it's ok, we know that the $10\%$ is
+just from the data mismatch.
+
+\paragraph{Addressing Data Mismatch}%
+\label{par:addressing_data_mismatch}
+
+We've seem that creating a training-dev set can show us the amount of error we
+have due to data mismatch from the training and dev/test sets. So how to address
+that in order to reduce this error? Indeed there are not automatic ways to do
+that, but we can look at a few things.
+
+One possible thing is to carry out manual error analysis to try to udnerstand
+difference. Than, we would try to make the training data more similar, or
+collect more data similar to dev and test sets. For instance, we could try to
+make the images of the cats more blury, or low resolution.
+
+\section{Transfer Learning and Multi-Task Learning}%
+\label{sec:transfer_learning_and_multi_task_learning}
+
+In many cases, we can use a NN trained in some task to improve another NN in
+other task, that's called \textbf{transfer learning}. Let's see how to do it.
+
+Suppose we have a NN to make image recognition and want to do radiology
+diagnosis. What we could do it just delete the last layer of the NN (the output
+layer) and randomly initialize a new output layer for the new task.
+
+By doing this, we hope that when the NN learned about how to recognize imagens,
+it already may know how to recognize parts of images to help us in the
+diagnosis.
+
+Another example could be a NN for speech recognition and we want a system for a
+trigger word. We can add several new layers and just train them, or we can train
+the whole network, but starting with the pre-trained weights.
+
+Transfer learning is useful when we have a pre-trained model that was trained
+with lots of data, but we're trying to solve a problem that has a small
+dataset. \jump
+
+What we could also do is try to learn from multiple tasks. That's called
+\textbf{multi-task learning}. Usually we use this kind of learning when we have
+a NN that is trying to do many things at the same time. For instance, if we have
+an autonomus car that detects pedestrians, cars, stop signs, traffic lights,
+etc. Then we could train a single NN that have a large output that predicts all
+thoses things at the same time. By doing this, we hope that learning one of
+those things will help to learn the others and lead to a better performance
+(that's what usually happen in practice).
+
+Multi-task learning is useful when we have similar tasks that can benefit from
+each other and when we have pretty much the same amount of data for each task.
+
+\section{End-to-End Deep Learning}%
+\label{sec:end_to_end_deep_learning}
+
+In many applications, we have a pipeline with many different stages until we
+reach a final result. For instance, in speech recognition, we may have to
+transform the audio into some set of features that will be transformed into
+phonemes that will be transformed into words that will be transformed into the
+trascript.
+
+In some cases, when we have a lot of data, we can bypass all those intermediate
+steps and translate audio into text with a single NN. That's what's called
+\textbf{end-to-end deep learning}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Convolutional Neural Networks and Applications}%
+\label{cha:convolutional_neural_networks_and_applications}
+
+\textit{Convolutional Neural Networks} are one special kind of NNs that are
+specially suited for \textit{Computer Vision} problems. Some of these problems
+include:
+\begin{itemize}
+    \item Image classification;
+    \item Object detection;
+    \item Style transfer;
+    \item ...
+\end{itemize}
+
+One of the most challeging facts about Computer Vision is that images can be
+very large. If we have a $1000\times 1000$ image, than we have an input $3$
+million variables (because there are $3$ color channels). That unquestionably
+huge for a ``standard'' neural net (or what we'll call \textit{dense} NN or
+\textit{multilayer perceptron} network - MLP). CNNs are suited for those tasks
+because they allow us to reduce the number of parameters we would have with a
+MLP.
+
+\section{Convolution Operation}%
+\label{sec:convolution_operation}
+
+First, we need to understand the convolution operation itself (which is
+independent of the concept of a neural net). To ilustrate that, we'll use the
+example of \textit{edge detection}.
+
+So suppose we want to detect vertical lines in a certain picture. One way to do
+that is by creating a \textbf{filter} (also called \textbf{kernel}) which is a
+$3\times 3$ matrix what we'll \textbf{convolve} that matrix with the image
+matrix.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.35]{Res/convolution.png}
+\caption{Here we have a $6\times 6$ matrix representing an image and a $3\times
+3$ filter that we'll convolve with the image resulting in a $4\times 4$, which
+will be a new image.}
+\label{convolution.png}
+\end{figure}
+
+The output of a convolution if given as the following (look at image
+\ref{convolution.png}):
+
+If we have a $6\times 6$ image, we'll put our filter uppon the image, one the
+upper left corner. So the filter will be aligned with a $3\times 3$ submatrix of
+the image. Then, we multiply the terms that are aligned and sum all of them
+together to get the answer. Figure \ref{convolution-computation.png} ilustrates
+this process.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/convolution-computation.png}
+\caption{Here we see an example of how to compute the elements of the resulting
+matrix.}
+\label{convolution-computation.png}
+\end{figure}
+
+Then, we shift the filter one the left and compute it again until we've moved
+the filter all the way through the image.
+
+Formally, we could define it as following:
+
+\[
+    C = \paren{\spsum{l=0}{n-1}\spsum{k=0}{n-1}A_{i+k,j+l}\cdot F_{k,l}}_{i,j},
+\]
+
+
+where $A$ is a matrix and $F$ is a $n\times n$ filter. \jump
+
+To understand why that $3\times 3$ matrix tells us where are the vertical edges,
+we could think that it cares when we have bright pixels on the left and dark
+pixels on the right, don't carring much about what's in the middle.
+
+If we wanted to detect horizontal edges, we could use:
+\[
+\begin{bmatrix}
+    1 & 1 & 1 \\
+    0 & 0 & 0 \\
+    -1 & -1 & -1 \\
+\end{bmatrix}
+\]
+
+Also, there's no particular reson why we would like these particular numbers, we
+could use:
+\[
+\begin{bmatrix}
+    1 & 0 & -1 \\
+    2 & 0 & -2 \\
+    1 & 0 & -1 \\
+\end{bmatrix}
+\]
+
+which is called the \textit{sobel filter}, or:
+\[
+\begin{bmatrix}
+    3 & 0 & -3 \\
+    10 & 0 & -10 \\
+    3 & 0 & -3 \\
+\end{bmatrix}
+\]
+
+which is called the \textit{scharr filter}.
+
+We can also try to learn the filter to have a good edge detector. Indeed, it can
+learn to detect $45º$ edges or $70º$ edges or whatever is better to the problem
+you're trying to solve. Later in this chapter, we'll see how to make a neural
+network learn these filters as parameters (but you can already see that it
+reduces drastically the number of parameters we'll learn, because now instead of
+having a weight for each pixel, we just have to learn these filters, which are
+smaller than the original picture).
+
+\subsection{Padding}%
+\label{sub:padding}
+
+Before we procede, we need to talk about \textit{padding}. We've seen that after
+convolving those matrices, the output is \textit{smaller} than the original
+input. In many applications, we don't want that, we want the output to have the
+same dimentions of the original input.
+
+Another down side of that we've been doing is the fact that the border pixels
+are used way less often than the middle pixels (because there are more filter
+pisitions that overlad the middle pixels).
+
+Padding is a solution to both of those problems. Before we apply the
+convolution, we pad the image, extending it with aditional zeros on the border.
+
+Originally, if $f$ is the filter size and $n$ is the input dimension, then the
+output would have $n-f+1$ dimensions. But if add an extra border (or pad) of $p$
+pixels around the image, than the output dimension will be $n+2p-f+1$.
+
+Therefore, to preserve the image dimensions, we must have $p = \dfrac{f-1}{2}$.
+
+Indeed, the two most common type of convolutions are the ones with no padding or
+the ones with a padding that leads to an output with same size as the input
+(also, by convention, $f$ is usually odd). We usually called these ``valid'' and
+``same'' convolutions respectively.
+
+\subsection{Strided convolutions}%
+\label{sub:strided_convolutions}
+
+Another modification we can do to the convolutions is adding strides, which
+means that we're not going to step just one to the right or one down, but more
+than that. This step parameter is called the \textit{stride}.
+
+If we say we'll have a stride of $2$, than we'll jump two squares to the left
+(or down) instead of just one. That leads us to a smaller output, because we'll
+be computing less times that element-wise product.
+
+Therefore now we have three parameters: $f,p$ and $s$, the stride. If our input
+has size $n$, them our output will have size equal to:
+$\floor{\dfrac{n+2p-f}{s}}+1$.
+
+\subsection{Convolutions over tensors}%
+\label{sub:convolutions_over_tensors}
+
+The final step before we apply convolutions to neural networks is learning how
+they work with not just 2d matrices, but with $n$d matrices (also called
+\textit{tensors}).
+
+So let's suppose we want to convolve on RBG images. So now we have a $6\times
+6\times 3$ image. To do that, we need a $3\times 3\times 3$ filter (or one
+filter for each color channel). And notice that the last $3$ \textbf{must} match
+the last dimention of the image.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/tensor-convolution.png}
+\caption{Here we have a visualization of a tensor convolution.}
+\label{tensor-convolution.png}
+\end{figure}
+
+Then the operation is very intuitive, you multiply each number of the matrix by
+the coresponding number in the filter and sum all those numbers.
+
+\section{One layers of a Convolutional Network}%
+\label{sec:one_layers_of_a_convolutional_network}
+
+Basicaly, to create a layer of a convolutional network, we need to do many
+convolutions of the same previous layer (all of them with the same size). Then,
+we add biases $b$ to those matrices and, finally, apply an activation function
+(like ReLU or Sigmoid). The last thing we must do is stack those matrices to
+create a tensor output that will be feeded into the next layer.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/one-layer-convolution.png}
+\caption{Here we see an ilustration of a convolutional layer.}
+\label{one-layer-convolution.png}
+\end{figure}
+
+\subsection{Notation}%
+\label{sub:notation}
+
+Let's set some notation we'll be using:
+\begin{itemize}
+    \item $\xlayer[f]{l}$ is the filter size of the $l$-th layer;
+    \item $\xlayer[p]{l}$ is the padding of the $l$-th layer;
+    \item $\xlayer[s]{l}$ is the stride of the $l$-th layer;
+    \item $\xlayer[c]{l}$ is the number of filters of the $l$-th layer;
+    \item $\xlayer[n]{l-1}_H\times\xlayer[n]{l-1}_W\times\xlayer[n]{l-1}_c$ is
+        the input shape for layer $l$;
+    \item $\xlayer[f]{l}\times\xlayer[f]{l}\times\xlayer[n]{l-1}_c$ is
+        the filter shape for layer $l$;
+    \item $\xlayer[f]{l}\times\xlayer[f]{l}\times\xlayer[n]{l-1}_c\times
+        \xlayer[n]{l}_c$ is the weights shape for layer $l$;
+    \item $\xlayer[n]{l}_c$ is the bias shape for layer $l$.
+\end{itemize}
+
+\section{Pooling layers}%
+\label{sec:pooling_layers}
+
+Usually, CNNs don't have just convolutional layers (or CONV layers for short),
+but can also have \textbf{Pooling layers} (or POOL layers for short) and
+\textbf{fully connected layers} (or FC layers for short).
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/max-pooling.png}
+\caption{An example of max pooling. This example has filter size and stride
+equal to $2$.}
+\label{max-pooling.png}
+\end{figure}
+
+Pooling layers are a way to speed up computations and make inputs lower. Figure
+\ref{max-pooling.png} gives an example of pooling layer. Basicaly, we have that
+moving window just like in convolutions, but instead of multipling and summing
+the numbers, we just apply an \textbf{aggregation function} (like max, min,
+prod, sum, mean, std) over those numbers.
+
+One of the most common aggregation function is \textit{max pooling} (because
+it's like we were preserving the filters were some kind of feature was
+detected). But, in theory, any aggregation could be used.
+
+Also, the concepts of stride, padding and filter size are the sames here, since
+we have a moving filter.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
