@@ -1877,6 +1877,154 @@ detected). But, in theory, any aggregation could be used.
 Also, the concepts of stride, padding and filter size are the sames here, since
 we have a moving filter.
 
+\section{Case Studies and Classic Networks}%
+\label{sec:case_studies_and_classic_networks}
+
+In this section, we're going to study some classic convolution networks to see
+why they're good and how to join the building blocks we've seem so far.
+
+\subsection{Classical Networks}%
+\label{sub:classical_networks}
+
+\paragraph{LeNet-5}%
+\label{par:lenet_5}
+
+This network was made to recognize $32\times 32\times 1$ handwritten digits.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/LetNet5.png}
+\caption{Here we see the architecture of LeNet-5. At that time, we used more avg
+pooling than max pooling.}
+\label{LetNet5.png}
+\end{figure}
+
+It was a very small network, with $60$k parameters.
+
+We see that it decreases the first and second dimensions and increases the
+number of channels. Also it starts by interchanging pooling and conv layers and
+ends with some fc layers.
+
+\paragraph{AlexNet}%
+\label{par:alexnet}
+
+This networks was made to work with $227\times 227\times 3$ images.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/AlexNet.png}
+\caption{Here we have a architecture of AlexNet. This is a much bigger network.}
+\label{AlexNet.png}
+\end{figure}
+
+AlexNet is similar to LeNet, but much bigger, with about $60$M parameters. They
+use ReLU here and Max Pooling instead of Avg Pooling.
+
+\paragraph{VGG-16}%
+\label{par:vgg_16}
+
+Instead of using a lot of different layers with different parameters, VGG-16
+uses just CONV layers with $3\times 3$ filters, stride of $1$ and same padding;
+and MAX POOL layers of $2\times 2$ and $s=2$. This network is very deep, so
+we're not going to draw it here.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.24]{Res/vgg16.png}
+\caption{Here we see how big is vgg16.}
+\label{vgg16.png}
+\end{figure}
+
+This network is huge, with $138$M parameters.
+
+\subsection{Residual Networks (ResNets)}%
+\label{sub:residual_networks_resnets_}
+
+One of the most famous networks today is the Residual Network. This kind of
+network use something called \textbf{skip layers}, which allow us to feed a
+deeper layer with a shallow layer and skip some layers in the network. This
+allow us to avoid some problems we've already mentioned such as Vanishing /
+Exploding Gradients and make it possible to have networks of over 100 layers.
+
+First, we need to understand what is a \textbf{residual block} (there's where
+the name comes from).
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/residual-layers.png}
+\caption{Here we see an example of residual layer. Instead of following the main
+path we already know, res layers allow a previous activation to \textit{short
+cut} to the next layer and be added to before the ReLU of that layer.}
+\label{residual-layers.png}
+\end{figure}
+
+Sometimes, we can also call these short cuts as \textit{skip connections}.
+
+A ResNet is just a Neural Net with lots of these skip connections. In practice
+we noticed that this kind of connections allowed to train for much longer,
+keeping decreasing the error.
+
+\subsection{Inception Network}%
+\label{sub:inception_network}
+
+\paragraph{$1\times 1$ convolutions}%
+\label{par:_1times_1_convolutions}
+
+First let's take a look at $1\times 1$ convolutions. You might think this is
+just multiplying by a number, but it's not quite that. Suppose you have a
+$32\times 32\times 192$ layer and you want to shirking it to a $32\times
+32\times 32$ layer. How to do that?
+
+One way is using $1\times 1$ convolutions. Basicaly we use $32$ $1\times
+1\times 192$ filters. What these filters do is multiply all the numbers in the
+``$z$'' coordinate together and output them into some activation function. So
+it's like we were passing those numbers into a FC layer and outputing the next
+layer.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/1x1-conv.png}
+\caption{A $1\times 1$ convolution filter ilustrated.}
+\label{1x1-conv.png}
+\end{figure}
+
+\jump
+
+Inception networks use \textit{different} filters in the same layers and stack
+the results in the output.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/inseption-layer.png}
+\caption{Here we see an example of inseption layer, where we apply different
+filters in the same layer.}
+\label{inseption-layer.png}
+\end{figure}
+
+\section{Data augmentation methods}%
+\label{sec:data_augmentation_methods}
+
+Data augmentation is the technique when we create new instances based on the
+instances we already have. This technique allows us to have ``more'' data to
+train, although we're not really grabbing more data.
+
+The positive points are that you can have more instances with very little cost,
+but the down side is that you might be overfitting that particular kind of data,
+so it must be done with caution.
+
+Let's explore some methods os data augmentation when applied to computer vision
+(i.e. images).
+
+\begin{itemize}
+    \item The most common method is \textit{mirroring} the image;
+    \item We can also take \textit{random crops} of the image;
+    \item \textit{Rotation} is another technique;
+    \item \textit{Shearing};
+    \item \textit{Local warping};
+    \item Another kind is \textit{color shifting}, in which we change the colors
+        a little to make it color resilient (one can use PCA in order to find
+        out which colors change more or less);
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
