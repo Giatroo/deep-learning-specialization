@@ -2026,6 +2026,274 @@ Let's explore some methods os data augmentation when applied to computer vision
         out which colors change more or less);
 \end{itemize}
 
+\section{Object Detection}%
+\label{sec:object_detection}
+
+Now we're going to learn how to detect object on the image. In object detection,
+we want to localize potentially several objects on an image, which is different
+from classifing whether an object is or not on that image.
+
+Before moving on detection problem where we might have several objects, we'll
+try a simpler problem called \textit{classification with localization}, where we
+classify if there is or not an object on the image and, if there is, we localize
+the postion of that object using a \textit{bounding box}.
+
+\subsection{Object Localization}%
+\label{sub:object_localization}
+
+To solve this problem, instead of having a single softmax neuron at the end of
+our network, we'll add four more output nodes:
+\[
+b_x, b_y, b_h, b_w
+\]
+
+These numbers represent the position and dimensions of the bounding box that
+we'll put around the object if it exists. $b_x, b_y$ is the center of the image.
+
+Now, let's extend the problem a little and say that we might have different
+objects and we also want to say if there an object, then what object it is.
+
+Suppose we have $n$ objects. Then we'll encode the objects using an one-hot
+encoding and output that encoding as well. So our output will look like this:
+
+\[
+    y = \begin{bmatrix}
+        p_c \\ b_x \\ b_y \\ b_h \\ b_w \\
+        c_1 \\ c_2 \\ \vdots \\ c_n
+    \end{bmatrix}
+\]
+
+$p_c$ is the probability that the image contains an object and, if it contains
+an object, than $b_x,b_y,b_h,b_w$ will be the bounding box and $\seq{c}{n}$
+will be the one-hot enconding of the object.
+
+If there's no object, then $p_c$ must be zero and the other values will be all
+\textit{don't cares} (meaning they can be anything).
+
+To define the loss function, basicaly we have two cases:
+\begin{itemize}
+    \item When $y_1$ ($p_c$) is $1$, we take the sum of squared differences of
+        all entries of the vector;
+    \item When $y_1$ is $0$, we take the squared difference of $y_1$ only.
+\end{itemize}
+
+Although, in practice we can use difference suberrors for each entry (use one
+kind of error for the bounding box, one for the one-hot enconding and one for
+the probability of containing an object).
+
+\subsection{Landmark detection}%
+\label{sub:landmark_detection}
+
+Instead of outputing a bouding box, we may want the neural network to output
+\textbf{lendmarks}, which are important points on the image.
+
+Suppose we want to perform face recognition. Than we might get the lendmarks of
+an image and check if there are eyes, month, nouse, etc.
+
+Each lendmark is a pair of numbers $\pair{l_x}{l_y}$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/Lendmark_detection.png}
+\caption{The difference between the bounding box and the landmarks.}
+\label{Lendmark_detection.png}
+\end{figure}
+
+Now our network outputs if there's an image and a set of nodes for the $x$ and
+$y$ position of each landmark.
+
+When training, it's important to have consistent landmarks. That means we must
+always have the same amount of lendmarks and they must be in the same location.
+So if lendmark $1$ is the left corner of the left eye, that must be true for all
+imagens.
+
+\subsection{Slinding windows detection algorithm}%
+\label{sub:slinding_windows_detection_algorithm}
+
+Let's now see a basic algorithm for solving object detection algorithms.
+
+So if we have images of cars and we have an algorithm that solves the problem of
+classifying the image as a car or not car, then we can now take a picture with
+many cars and slide a window across the image, checking if each window is or not
+a car. If it is a car, then we have a bounding box (the window we are currently
+in).
+
+We might change the window size the slide for many sizes.
+
+This concept is very similar to that concept of passing a convolutional filter
+over a matrix.
+
+Of course, the computational cost of this algorithm is very high, because each
+time we slide the window, we have to ask the network is that new image is or not
+a car (or any object we're detecting).
+
+Fortunately, there's a much singler and cheaper way to implement this algorithm
+using convolutions. To understand that, though, we have to understand how to
+turn fully connected layers into convolutional layers. Let's see that first.
+
+Suppose we have a $5\times 5\times 16$ volume and pass it to a $400$ node FC.
+Then we could instead of that use $400$ filters of $5\times 5\times 16$. Then
+the resulting dimention will be $1\times 1\times 400$. So instead of viewing
+that FC layer as a plain stuff, we say it has a depth of $400$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/fc_into_conv_layers.png}
+\caption{The difference between the FC layers and Conv layers.}
+\label{fc_into_conv_layers.png}
+\end{figure}
+
+Now let's see how to speed up the sliding window algorithm.
+
+So suppose we have a $16\times 16\times 3$ data set and the ConvNet of figure
+above. In the original sliding window algorithm, we would apply the ConvNet four
+times (stride of 2) in the images. But instead of that, what we do is just feed
+the $16\times 16\times 3$ images into the ConvNet, resulting in a $2\times
+2\times 4$ output. Each ``square`` on that output is equal to one window in the
+original algorithm.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/conv_sliding_windows.png}
+\caption{Each square on the final output represent one window of the original
+one, but everything is done with one pass.}
+\label{conv_sliding_windows.png}
+\end{figure}
+
+\subsection{YOLO algorithm}%
+\label{sub:yolo_algorithm}
+
+Even using the convolutional aproach, the sliding windows algorithm will not
+output precise bounding boxes, because it depends on the window size the stride
+used. The YOLO algorithm, however can do that also with only one pass of a
+convolutional network (what's why it's called \textit{You Only Look One}).
+
+In this algorithm, you divide the original image into a grid ($3\times 3$ in the
+example, but much bigger grid in real life). Now each square of the grid is
+considered a single image and we apply the localization algorithm we've learned
+later. Therefore, for each square we'll have a probability of containing an
+object, a bounding box and a one-hot encoding. So let's suppose the one-hot
+enconding contains $3$ numbers. Then we'll have a ``global'' output of $3\times
+3\times 8$ ($1+4+3=8$).
+
+What we do then is use a convolutional network with the size of the input that
+maps to that $3\times 3\times 8$ output. The network will predict the whole
+image at once, but will output at maximum one bounding box per square in the
+grid, which is awesome.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/yolo_example.png}
+\caption{Here we see an example of the grid in the YOLO algorithm.}
+\label{yolo_example.png}
+\end{figure}
+
+We just need to note some things about this method.
+\begin{enumerate}
+    \item \textit{An object could be between two or more squares.} What we do
+        then? In that case, we asign the object using its central point. The
+        cell with the central point is considered the cell where that object is
+        at;
+    \item \textit{How to train the network? How to create the training
+            examples?} To do that, we use the convention that the upper-left
+            corner of the image is $\pair{0}{0}$ and the lower-right is
+            $\pair{1}{1}$. Then $b_x$ and $b_y$ will be values between $0$ and
+            $1$ and $b_h$ and $b_w$ represent the percentage of coverage of the
+            image. In particular, they can be greater than $1$ when the bounding
+            box is greater than a single cell.
+\end{enumerate}
+
+\subsubsection{Intersection over Union}%
+\label{ssub:intersection_over_union}
+
+To if an algorithm is predicting correctly a bounding box, we use the concept of
+\textit{Intersection over Union} (or IoU). To compute that, we take the
+predicted bounding box and the real bouding box and compute the intersection and
+union of both, than we divide the union by the intersection. The closer to $1$,
+the better. In particular, the value is $0$ is the intersection is null (the
+predicted bounding box is completely out the real bouding box) and is $1$ if the
+bouding boxes are exactly the same.
+
+In general we use $0.5$ as a good value to achieve, but you might change that
+acording to your needs.
+
+\subsubsection{Non-max Suppresion}%
+\label{ssub:non_max_suppresion}
+
+In YOLO, we divide the image into many cells and an object might fall into many
+of them and many of them might detect that same object. We need therefore a way
+to keep just one bounding box for each object. How to do that with an algorithm?
+
+What's where the \textit{non-max suppresion} comes into play.
+
+In this algorithm, we select the bounding box with the highest $p_c$ and look at
+all the remaining rectangles to check if any of them has a high IoU. If so, them
+we remove those bounding boxes, because they belong to the same object (of
+course, we look only at those that were predicted for the same object we're
+looking right now). Them we do that again for the second highest $p_c$ and so
+on, until we only have one bouding box for each object.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/non_max_suppression_example.png}
+\caption{Here we see an example of non-max suppresion. The bouding boxes with
+$p_c$ equals to $0.9$ and $0.8$ are kept while the others will be excluded. Also
+notice that we don't exclude the bb with $p_c=0.8$ when looking at the one with
+$p_c=0.9$ because they have an IoU of $0$ and, thus, aren't the same object.}
+\label{non_max_suppression_example.png}
+\end{figure}
+
+\subsubsection{Anchor Boxes}%
+\label{ssub:anchor_boxes}
+
+\textit{What if one cell of our grid wants to detect multiple objects?}
+
+Let's suppose we have a car and a pedestrian in front of it and their center
+points are so close together that fall into the same cell. That's one of the
+reasons why to use \textit{anchor boxes}.
+
+In this concept, we allow a cell to predict many bounding boxes according to a
+predefined shape, called anchor box. In this case, we could predefine two anchor
+boxes, one which is in a portrait shape and another in a landspace shape. the
+portrait one will detect the car and the landspace one will detect the
+pedestrian.
+
+So now instead of having that $8$ nodes output for each cell of the grid (in our
+previous example), we would have $16$ nodes for each cell, because we would have
+two probabilities, two bounding boxes and two one-hot encodings.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/anchor_box_example.png}
+\caption{Here we see the example showing the anchor boxes predefined and how the
+$y$ label will look like for each cell of the grid.}
+\label{anchor_box_example.png}
+\end{figure}
+
+One doubt might be how we should where we'll predict a class if we just have one
+class. Well, in that scenario, we'll output it to the anchor box that is more
+closer to the bounding box we're predicting. We use the IoU of the bounding box
+with the anchor box and output to the anchor box that is closer to what we're
+predicting.
+
+If in the example the upper output ($p, b$ and $c$) refer to anchor box 1 and
+the lower output refer to anchor box 2, then we're likely to predict pedestrians
+using the lower part of the output and cars using the upper part.
+
+One might think that this concept is very useless because that cenario where a
+single cell wants to predict more than one bb is very unlikely to occour and the
+downside of doubling the output is greater than that benefit. But actually if we
+match the anchor boxes to the usual shape of the classes we want to predict,
+than it can contribute to our algorithm because each output cell will be
+specialized in predicting a certain class.
+
+In our example, some cells will always predict the pedestrians and others will
+always predict cars (because pedestrians have that portrait shape while cars
+have a landspace one).
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
