@@ -2291,8 +2291,326 @@ In our example, some cells will always predict the pedestrians and others will
 always predict cars (because pedestrians have that portrait shape while cars
 have a landspace one).
 
+\section{Semantic Segmentation}%
+\label{sec:semantic_segmentation}
 
+In this section we're going to explore another vision problem: \textit{semantic
+segmentation}.
 
+In this kind of problem, instead of identifying objects using bounding boxes, we
+input an imagem and want the network to color every single pixel with a color
+that corespond to a particular kind of object. All the sky will be colored in
+black, all the cars will be colored in brown, all the buildings will be colored
+in blue and so on.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.45]{Res/object_detection_vs_semantic_segmentation.png}
+\caption{In the picture we see the differences between object detection and
+semantic segmentation problems.}
+\label{object_detection_vs_semantic_segmentation.png}
+\end{figure}
+
+So how to do that? The CNNs we've seen so far are only able to make the input
+smaller and smaller (and deeper), but we need a away of applying convolutions
+and after a while, making the shape of the computations go back to the original
+size. To make that, we'll need to implement a \textit{transpose convolution}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.45]{Res/nn_for_semantic_segmentation.png}
+\caption{Here we see an example of neural network for semantic segmental. We
+decrease the height and weight and increase the number of channels until some
+point and them increase the height and weight and decrease the number of
+channels to the original size.}
+\label{nn_for_semantic_segmentation.png}
+\end{figure}
+
+\subsection{Transpose Convolutions}%
+\label{sub:transpose_convolutions}
+
+Understanding transpose convolutions is very important to understand how to get
+a $2\times 2$ input and blow it up to a $4\times 4$ output (or any input smaller
+than output).
+
+To learn that, let's use an example. Suppose we have a $2\times 2$ input and
+want a $4\times 4$ output. So we're going to use a $3\times 3$ filter, padding
+of $1$ and stride of $2$.
+
+Our input and filter look like:
+
+\[
+I = \begin{bmatrix}
+    2 & 1 \\ 3 & 2
+\end{bmatrix}
+\t\t
+F = \begin{bmatrix}
+    1 & 2 & 1 \\
+    2 & 0 & 1 \\
+    0 & 2 & 1
+\end{bmatrix}
+\]
+
+First, we initialize the output matrix with zeros and pad it by $1$ (yes, we pad
+the output, not the input).
+Then, for each entry in the input, we're going to perform the following
+operations:
+
+\begin{enumerate}
+    \item Multiply the filter matrix by that number;
+    \item Now put the filter matrix in the right position in the output matrix
+        (I'll show what I mean by right position in the figure);
+    \item Then sum each element in the filter with the current element on the
+        position that match with the filter entry.
+\end{enumerate}
+
+Simple like that!
+
+Now what I mean by ``right position''? As we've padded the output matrix, now
+it's $6\times 6$. So for the entry $0,0$ of the input matrix, I'll match the
+$0,0$ entry of the filter with the $0,0$ entry of the output matrix.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.3]{Res/transpose_conv_1.png}
+\caption{Here we see what happens in the first step of the transpose
+convolution. We multiply the filter by $2$, put it in the $0,0$ position of the
+output matrix and put the numbers on the right spots (ignoring the padding
+because it will not enter in the final output).}
+\label{transpose_conv_1.png}
+\end{figure}
+
+Then, I move on to the next entry in the input matrix, which is $0,1$. Since we
+have a stride of $2$, will multiply those coordinates by $2$ resulting in $0,2$.
+Now I put the filter in the $0,2$ entry of the output matrix and sum the filter
+numbers as I said before.
+
+Then, I move to $1,0$ and, therefore, match the filter if the position $2,0$ of
+the output matrix.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{Res/transpose_conv_2.png}
+\caption{Here we see the next step of the covolution.}
+\label{transpose_conv_1.png}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.25]{Res/transpose_conv_3.png}
+\caption{Here is the output matrix at the end of the transpose convolution.}
+\label{transpose_conv_1.png}
+\end{figure}
+
+At the end, our output matrix will be:
+
+\[
+O = \begin{bmatrix}
+    0 & 4 & 0 & 1 \\
+    10 & 7 & 6 & 3 \\
+    0 & 7 & 0 & 2 \\
+    6 & 3 & 4 & 2
+\end{bmatrix}
+\]
+
+\subsection{U-Net}%
+\label{sub:u_net}
+
+Now we'll use the transpose convolutions to build a U-Net, which is the main
+architecture for solving semantic segmentation problems.
+
+So as we've seem before, we use normal convolutions to reduce the image into a
+smaller shape and then we use transpose convolutions to make it back to the
+original shape. That small shape region will help us to reduce the amount of
+information about the image, forcing the network to really learn the fundamental
+of that we're trying to map.
+
+But also, there's one more stuff we need to add to that architecture to call it
+a U-Net, and that's skip connections from the normal convolution part to the
+transpose convolution part. Those skip connections will make the model use not
+just the fundamental information of the image, but also join that with the
+high resolution information contained in the first half of the network.
+
+Let's take a look at the U-Net architecture.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.45]{Res/u-net_architecture.png}
+\caption{That's the original U-Net architecture.}
+\label{u-net_architecture.png}
+\end{figure}
+
+We can see that in this architecture, we use convolutions actually with the
+``same'' padding, to keep the input size and than use a max pooling layer to
+reduce the input size. Each time we use two conv layers and one max pooling
+layer.
+
+Than, after a while, we start using transpose convolution layers instead of max
+pooling, to return to the original size. So we do two conv layers and one trans
+conv layer (but in the first conv layer we have a skip connection from the part
+of the network where we had the same size, but in the first half).
+
+At the end, we have a $1\times 1$ convolution to get our output.
+
+One can see that the architecture is called U-Net becuase it looks like an U. We
+have a \textit{downscaling part}, a \textit{bridge part} and a \textit{upscaling
+part}.
+
+\section{Face Recognition}%
+\label{sec:face_recognition}
+
+Before moving to the face recognition problem, we have to talk about the
+\textbf{face verification} problem, in which we're given an input image and a
+name/ID and need to output whether the input image is that of the claimed
+person. That's called a one to one problem.
+
+The recognition problem is much harder, because it envolves more than one
+person. In the face recognition problem, we have a datebase with $K$ persons
+and, given an input image, we need to ouput the ID of the person if the image is
+any of the $K$ persons in the database or output ``not recognized''. That a one
+to $K$ problem.
+
+If we have a face verificiation system with a $99\%$ accuracy and apply it to
+the recognition problem, we'll have $K$ times more chances of having an error,
+because now we have $K$ persons.
+
+\subsection{One-shot learning}%
+\label{sub:one_shot_learning}
+
+One-shot learning is a kind of machine learning algorithm that just need one
+input to be trained. In the case of a face recognition problem, that's quite
+often because we might have just one photo of each person in our database and
+want to, given a new photo, predict if it's from anyone in the database or is
+not present in the database.
+
+We could apply the image into a CNN and predict a vector of $k+1$ dimention with
+a softmax layer where $k$ is the number of persons. That vector is the
+probability of each person or none of them (that why the $+1$). That however is
+very unlikely to give good results because just one photo isn't enough to train
+a CNN. The what if we want to add new people to the datebase, we would need to
+retrain the CNN, losing everything.
+
+In this kind of problem, we want to learn a ``similarity'' function, which is a
+function $d(img1, img2)$ measuring the degree of difference between images.
+
+Is that degree is low for two images (below a threshold $\tau$), we say the two
+images belong to the same person.
+
+\subsection{Siamese network}%
+\label{sub:siamese_network}
+
+But how to actually learn that $d$ function? One good way is using a
+\textit{simamese network}. In this kind of neural network, we have a simple CNN
+just like we had throughout this chapter, with some Conv Layers and some FC
+Layers at the end. But just in the head (the last layer) of that network,
+instead of having a softmax unit to output some small vector, we actually cut
+that and have a big FC layer at the end. Let's suppose we have a FC layer with
+say $128$ units.
+
+We define this output as an \textit{encoding} of the input. So if we apply a
+picture $\xii[x]{1}$ through the network, it will output the encoding of that
+image $f(\xii[x]{1})$.
+
+Therefore, each image $\xii[x]{i}$ has an encoding $f(\xii[x]{i})$. What we want
+now is to compare those encodings in a way that the same person will have
+similar encodings.
+
+So we can use $d(\xii[x]{i}, \xii[x]{j})$ as $\norm{\xii[x]{i}-\xii[x]{j}}^2$.
+And we want $d$ to be a large number if $i$ and $j$ are different people and $d$
+to be a small number if they're the same. We need, then, to make our network
+learn parameters such that these conditions are satisfied using backpropagation.
+
+\subsection{Triplet Loss Function}%
+\label{sub:triplet_loss_function}
+
+To train a siamese network, we need to define a loss function. The main loss
+function used is the \textit{triplet loss function}, which needs two photos of
+the same person and one photo of another person.
+
+For this loss function, we set an \textit{anchor}, a \textit{positive} instance
+and a \textit{negative} instance. That's our triplet $\angbracket{A, P, N}$.
+
+What we want now is to set the difference between the anchor and the positive case
+to be lower than the difference between the anchor and the negativa case. That
+leads to the equation:
+
+\[
+\norm{f(A)-f(P)}^2 \leq \norm{f(A)-f(N)}^2
+\]
+
+However one might see that it can be solved quite trivialy by just predicting
+zeros or actually by predicting the same value for any image. If $f(x) = c$ for
+a constant vector $c$, then we would have $0\leq 0$ always, which would be
+interpreted as a good thing.
+
+That's why we also add a \textit{margin term} $\alpha$, which is a
+hyperparameter. We say that the difference between those differences much be at
+least $\alpha$. In the equation
+we have:
+
+\[
+\norm{f(A)-f(P)}^2 + \alpha \leq \norm{f(A)-f(N)}^2
+\]
+
+or:
+
+\[ \boxed{
+\norm{f(A)-f(P)}^2 - \norm{f(A)-f(N)}^2 + \alpha \leq 0
+}\]
+
+And now we define the error function as a sum over all the triplets:
+\[
+\mathcal{L}(A, P, N) = \max\paren{
+    \norm{f(A)-f(P)}^2 - \norm{f(A)-f(N)}^2 + \alpha, \,0
+}
+\]
+\[ \boxed{
+J=\sum_{i=1}^{n} \mathcal{L}\paren{\xii[A]{i}, \xii[P]{i}, \xii[N]{i}}
+}\]
+
+Also, one might see that we need more than one picture per person to train the
+network. Our training set could have $10$k picture of $1$k people, with an
+average of $10$ pictures per person.
+
+When training the network, we do need more than one photo, but when applying it
+just to encode a new person, we'll not need more than one photo because we are
+assuming our network learned how to encode a photo in a way that's good to, when
+exposed to a photo of the same person, have a close encode.
+
+\jump
+
+Now the question we still need to answer is how to choose our triplet
+$\angbracket{A, P, N}$. If we choose very different people, our constrain will
+be easily satisfied, so we need to, somehow, this to make is hard for the
+network (show hard examples).
+
+And we actually know what's hard for the network because, when training, some
+triplets will have $d(A, P)$ and $d(A, N)$ much closer than others. These are
+the ones we like, because they will push the network futher into increasing
+$d(A, N)$ or decreasing $d(A, P)$ until the point the difference is smaller than
+$\alpha$.
+
+Therefore, we chose the triplets there aren't still satisfied.
+
+\subsection{Face Verification as a Binary Classification Problem}%
+\label{sub:face_verification_as_a_binary_classification_problem}
+
+Instead of using the Triplet Loss Function that we've seem before, we can also
+concatenate the outputs of the simamese network into a final logistic regression
+output that predictes $1$ is the images are the same person or $0$ if it's not.
+
+That's a nice way of learning a similarity function instead of creating one.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/simamese_binary_class.png}
+\caption{We pass both images through the same CNN, which encodes them into a
+feature vector and use those vectors as inputs for a final layer which predicts
+$1$ or $0$. If we're not in the training fase, but in the deploy face of our
+project, we can precompute the encodings of the saved people the use the input
+to compare with all of them and check if the input is any of the saved people.}
+\label{simamese_binary_class.png}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
