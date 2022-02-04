@@ -2612,6 +2612,170 @@ to compare with all of them and check if the input is any of the saved people.}
 \label{simamese_binary_class.png}
 \end{figure}
 
+\section{Neural Style Transfer}
+
+\textbf{Neural Style Transfer} is a technique that allow us get any image and
+apply a style of another image over it.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/neural_style_transfer.png}
+\caption{Here we have an example of neural style transfer.}
+\label{neural_style_transfer.png}
+\end{figure}
+
+In order to transfer a style, we need to get all the features learned in many
+different layers of a ConvNet. So let's understand a little better what exactly
+is a CNN learning.
+
+To get intuition on that, let's make an exercise of picking a single neuron unit
+in a layer of the network. Then let's plot all the images that maximize the
+activation of that unit. But since a neuron in the first layer don't actually
+sees much of the image, we're going to plot only the pixels that the neuron
+really sees in that image of maximum activation.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/visualizing_cnn_1.png}
+\caption{This figure shows the $9$ images for $9$ random nodes in the first
+layer of a CNN. These images are the ones that maximize the respective neurons.
+We can clearly see that each $3\times 3$ square in the matrix above detects a
+different pattern of image. Most of them detect lines with some particular
+colors. That's because in we got neurons from the first layer.}
+\label{visualizing_cnn_1.png}
+\end{figure}
+
+Plotting that that, we'll get a figure like \ref{visualizing_cnn_1.png}. Let's
+now repeat that for other layers.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/visualizing_cnn_2.png}
+\caption{This figure shows the same as the previous, but for neurons from the
+second layer. We see that we're building complexibility.}
+\label{visualizing_cnn_2.png}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/visualizing_cnn_3.png}
+\caption{Now we see the same as the two previous figures, but for layer 3. We
+can see that a neuron is detecting people, while other is detecting tires and so
+on. We observe that each neuron is learning a different complex pattern.}
+\label{visualizing_cnn_3.png}
+\end{figure}
+
+\subsection{Cost Function}%
+\label{sub:cost_function}
+
+The first step to apply neural style transfer is creating a cost function. So
+let's remember that we have a Concent $C$, a Style $S$, and want a Generated
+image $G$. We want to define $J(G)$ to be the cost function. Then, we can use
+Gradient Descent to minimize that function.
+
+We'll break that cost function into two parts, the concent cost and the style
+cost:
+
+\[
+J(G)=\alpha J_{\text{content}}(C, G) + \beta J_{\text{style}}(S, G)
+\]
+
+The style cost measures how close is the style of S to the style of G, and the
+content cost measures how close is the content of C to the content of G. We'll
+average those costs using two hyperparameters $\alpha$ and $\beta$.
+
+We could really just use one hyperparameter, but the original authors of the
+technique use two, so we'll just do the same.
+
+After defining the cost function, we initialize $G$ randonly and run gradient
+descent updating the pixels of $G$ until it looks good.
+
+\paragraph{Content Cost Function}%
+\label{par:content_cost_function}
+
+For the content cost function, we recall on what we've seen before on what each
+layer of the ConvNet learns. To define this cost, we get a pre-trained CNN and
+select a layer $l$ (nether too shallow or too deep). If we run two images, that
+layer will have different outputs. Those outputs can be similar or not, but in
+general they will be similar if the \textit{content} of both images is similar.
+So we'll define that difference as the content cost function.
+
+Formally, if we have two images $C$ and $G$, let $\xlayer[\xii[a]{l}]{C}$ and
+$\xlayer[\xii[a]{l}]{G}$ be the activations of layer $l$ on those images. Then,
+we define:
+
+\[
+J_{\text{content}}(C, G)=\dfrac{1}{2}
+\norm{\xlayer[\xii[a]{l}]{C}-\xlayer[\xii[a]{l}]{G}}^2
+\]
+\begin{obs}
+We're using $a$ as a flattened vector of the layer.
+\end{obs}
+
+\paragraph{Style Cost Function}%
+\label{par:style_cost_function}
+
+To measure the style of an image, we need to define what is style.
+
+Formally, we'll define it as the \textit{correlation between activations across
+different channels of a convolutional layer}. Let's understand what that mean.
+
+Basicaly we've seen before that each activation (neuron) detects different kinds
+of shapes and patterns in an image. We can define the style as the correlation
+of those patterns (i.e., if a pattern is present in an image, than another
+pattern is also present). This gives us a formal way to express style.
+
+So to calculate that, we need to define a \textit{style matrix} $G$.
+
+First, let's define $\xlayer[a]{l}_{i,j,k}$ as the activation at $(i,j,k)$ of
+our convolutional layer. The matrix $\xlayer[G]{l}$ is
+$\xlayer[n]{l}_c\times\xlayer[n]{l}_c$ (a squared matrix of dimensions equal to
+the number of channels of a layer). An element $\xlayer[G]{l}_{k,k'}$ of the
+matrix computes the correlation for layer $l$ between channel $k$ and $k'$.
+
+To compute the matrix, we compute each element as:
+
+\[
+\xlayer[G]{l}_{k,k'}=\spsum{i=1}{\xlayer[n]{l}_H}\spsum{j=1}{\xlayer[n]{l}_W}
+\xlayer[a]{l}_{ijk} \xlayer[a]{l}_{ijk'}
+\]
+
+\begin{obs}
+The right formula actually indicate that those values are calculated over the
+Style $S$, but I'll ommit that since the formula would be too populated.
+\end{obs}
+
+We now define the style cost function for a particular layer $l$ as:
+
+\[
+\xlayer[J]{l}_{\text{style}}(S,G)=
+\dfrac{1}{\paren{2\xlayer[n]{l}_H\xlayer[n]{l}_W\xlayer[n]{l}_C}^2}
+\norm{\xlayer[\xii[G]{l}]{S}-\xlayer[\xii[G]{l}]{G}}^2
+\]
+
+or
+
+\[ \boxed{
+\xlayer[J]{l}_{\text{style}}(S,G)=
+\dfrac{1}{\paren{2\xlayer[n]{l}_H\xlayer[n]{l}_W\xlayer[n]{l}_C}^2}
+\spsum{k}{}\spsum{k'}{}
+\paren{G_{kk'}^{[l](S)}-G_{kk'}^{[l](G)}}^2
+}\]
+
+And the authors found out that the result is better if we sun those correlations
+between many different layers, so the final style cost function is:
+
+\[ \boxed{
+    J_{\text{style}}=\spsum{l}{}\lambda_l \xlayer[J_{\text{style}}]{l}(S,G)
+}\]
+
+and we use an additional set of hyperparameters $\lambda_l$ for that.
+
+Finally, the final cost function will be:
+\[ \boxed{
+J(G) = \alpha J_{\text{content}}(C, G) + \beta J_{\text{style}}(S, G)
+}\]
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
