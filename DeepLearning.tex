@@ -2778,4 +2778,104 @@ J(G) = \alpha J_{\text{content}}(C, G) + \beta J_{\text{style}}(S, G)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\chapter{Sequence Models and Applications}%
+\label{cha:sequence_models_and_applications}
+
+Sequence problems are supervised problems where eather the input or the output
+(or both) are sequences.
+
+For a particular sequence input $x$, we'll denote the elements of the sequence
+as $\xseq[x]{1}, \xseq[x]{2}, \cdots \xseq[x]{t}, \cdots \xseq[x]{T_x}$, where
+$T_x$ denotes the lenght of the sequence. The same holds for $y$.
+
+As we denote the $i$-th input as $\xii[x]{i}$, it means that the $t$-th element
+of the $i$-th input is $\xii[\xseq[x]{i}]{t}$, and the length of the $i$-th
+input is $\xii[T_x]{i}$. Again, the same holds for $y$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/phrase_representation.png}
+\caption{An example of phrase representation.}
+\label{phrase_representation.png}
+\end{figure}
+
+\section{Recurrent Neural Network}%
+\label{sec:recurrent_neural_network}
+
+Now that we're familirized with the notation and the problem, let's see how to
+create a model to learn and solve sequence problems.
+
+The first step is understand why a simple NN doesn't work here.
+
+So suppose we want to use the standard MLP model. So we feed the input sequence
+and pass through some hidden layers and the output layer is also a sequence.
+Seems like we could do that and indeed we can. But there are two main problems
+with that aproach.
+
+The first one is that the input and output sequences might have variable length.
+If we're dealing with phrases, for instance, each phrase can have a difference
+size.
+
+But the bigger problem is that this aproach doesn't share features learned
+across different positions of the sequence. Suppose we want to find all the
+names in a phrase (like the one from Figure \ref{phrase_representation.png}).
+The first node from the first layer might learned that \textit{Harry} is a name.
+But as that node just get information from the first word of the text, it will
+not spread that information that \textit{Harry} is a name to the other nodes
+and, therefore, if \textit{Harry} apears in other parts of the text, we'll have
+to learn that again and again for each position.
+
+Also, as we've seen in the image part of the specialization, creating a mode
+just for this kind of problem will help to reduce the number of features we have
+to learn.
+
+A Recurrent Neural Network (RNN) can help with the problem. In this kind of
+architecture, we feed the input in different timestamps. At each time, the
+network will compute an output and use its activation values (or some of them)
+as inputs for the next timestamp.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.45]{Res/RNN_basic.png}
+\caption{For the first element, we use only its value and an arbitrarial
+$\xseq[a]{0}$ vector to compute $\xseq[y]{1}$. For the next element, we use both the
+element and the activation $\xseq[a]{1}$ from the previous input.}
+\label{RNN_basic.png}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/RNN_representation.png}
+\caption{Some authors use this diagram to represent RNNs, the loop with a box
+represents a delay of one timestamp.}
+\label{RNN_representation.png}
+\end{figure}
+
+RNNs scan the input sequence from left to right and use the same parameters
+for each element.
+
+Scanning from left to right not always is a good thing. Many times we also need
+information that we'll see on the right to predict something about the left
+element. That's one limitation of this particular architecture. Later we'll see
+how to address that.
+
+To compute forward propagation, we use:
+\[
+\xseq[a]{t}=g\paren{W_{aa}\xseq[a]{t-1}+W_{ax}\xseq[x]{t}+b_{a}}
+\]
+\[
+\xseq[y]{t}=g\paren{W_{y}\xseq[y]{t}+b_{y}}
+\]
+
+And to simplify the notation, we'll write the first formulata as:
+\[
+\xseq[a]{t}=g\paren{W_{a}\sbracket{\xseq[a]{t-1}, \xseq[x]{t}}+b_{a}}
+\]
+
+$W_a$ is the matrix that we get when stack horizontally $W_{aa}$ and $W_{ax}$
+and $\sbracket{\xseq[a]{t-1}, \xseq[x]{t}}$ denotes the vector we get when
+stacking vertically $\xseq[a]{t-1}$ and $\xseq[x]{t}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{document}
