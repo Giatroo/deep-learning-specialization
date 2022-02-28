@@ -2876,8 +2876,8 @@ $W_a$ is the matrix that we get when stack horizontally $W_{aa}$ and $W_{ax}$
 and $\sbracket{\xseq[a]{t-1}, \xseq[x]{t}}$ denotes the vector we get when
 stacking vertically $\xseq[a]{t-1}$ and $\xseq[x]{t}$.
 
-\section{Different types of RNNs}%
-\label{sec:different_types_of_rnns}
+\subsection{Different types of RNNs}%
+\label{sub:different_types_of_rnns}
 
 So far, we only saw the type of RNN were the number of inputs and outputs is the
 same. Let's explore some other types of more interesting RNNs.
@@ -3021,11 +3021,148 @@ here, we would need a skip connection \textit{through time}. \jump
 
 The next sections will discuss some methods to adress this problem.
 
-\section{Gated Recurrent Unit (GRU)}%
-\label{sec:gated_recurrent_unit_gru_}
+\subsection{Gated Recurrent Unit (GRU)}%
+\label{sub:gated_recurrent_unit_gru_}
 
+The GRU is a modification to the RNN neurons that make it much batter to capture
+long term dependencies and solve the vanishing gradient problem.
 
+That unit has a new variable called $c$ of \textit{memory cell}. At time $t$,
+the memory cell will have a value $\xseq[c]{t}=\xseq[a]{t}$ (for the GRU $c$ is
+equal to the activation value at that moment, but that will change for LSTM).
 
+At each time, we'll have a candidate to replace $c$, which is:
+\[
+\xseq[\tilde{c}]{t}=\tanh\paren{W_{c}\sbracket{\xseq[c]{t-1},\xseq[x]{t}}+b_c}
+\]
+
+And we have a gate $\Gamma_u$:
+\[
+\Gamma_u=\sigma\paren{W_{c}\sbracket{\xseq[c]{t-1},\xseq[x]{t}}+b_c}
+\]
+
+And we update the memory cell using the gate and the candidate like so:
+\[
+\xseq[c]{t}=\Gamma_u\times\xseq[\tilde{c}]{t}+(1-\Gamma_u)\times\xseq[c]{t-1}
+\]
+
+\begin{obs}
+Remember that $\sigma(x)$ is the sigmoid function, which can be thought as a
+function that maps to either $0$ or $1$. Therefore, the formula above than be
+though as keeping the old value if the gate is zero or updating to the candidate
+if the gate is one.
+\end{obs}
+
+\paragraph{Full GRU}%
+\label{par:full_gru}
+
+There's another version of GRU, which is more commonly used. This version adds a
+new parameters $W_r$, which is used to compute a new gate $\Gamma_r$ used to
+check how relevante $\xseq[c]{t-1}$ is to calculate $\xseq[\tilde{c}]{t}$:
+
+\[
+\Gamma_r=\sigma(W_r\sbracket{\xseq[c]{t-1},\xseq[x]{t}}+b_r)
+\]
+\[
+\xseq[\tilde{c}]{t}=\tanh\paren{W_{c}\sbracket{\Gamma_r\times\xseq[c]{t-1},\xseq[x]{t}}+b_c}
+\]
+
+All other equations are kept the same.
+
+\subsection{Long Short Term Memory}%
+\label{sub:long_short_term_memory}
+
+The LSTM is a more powerful and general version of the GRU. This kind of cell
+doesn't always have $\xseq[c]{t}=\xseq[a]{t}$. And also we don't have just one
+gate for the update. We'll use an \textit{update} gate, a \textit{forget} gate,
+and also an \textit{output} gate.
+
+Let's see the equations:
+\[
+\xseq[\tilde{c}]{t}=\tanh\paren{W_{c}\sbracket{\xseq[a]{t-1},\xseq[x]{t}}+b_c}
+\]
+\[
+\Gamma_u=\sigma(W_u\sbracket{\xseq[a]{t-1},\xseq[x]{t}}+b_u)
+\]
+\[
+\Gamma_f=\sigma(W_f\sbracket{\xseq[a]{t-1},\xseq[x]{t}}+b_f)
+\]
+\[
+\Gamma_o=\sigma(W_o\sbracket{\xseq[a]{t-1},\xseq[x]{t}}+b_o)
+\]
+\[
+\xseq[c]{t}=\Gamma_u\times\xseq[\tilde{c}]{t}+\Gamma_f\times\xseq[c]{t-1}
+\]
+\[
+\xseq[a]{t}=\Gamma_o\times\tanh\xseq[c]{t}
+\]
+
+We can see better that unit in figure \ref{LSTM.jpg}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/LSTM.jpg}
+\caption{The figure to represent the LSTM.}
+\label{LSTM.jpg}
+\end{figure}
+
+Historicaly, LSTM was invented first and it's more of a standard try, but GRU
+are a simpler way that runs faster.
+
+\section{Other versions of RNNs}%
+\label{sec:other_versions_of_rnns}
+
+\subsection{Bidirectional RNN}%
+\label{sub:bidirectional_rnn}
+
+BRNNs are actually very simple. We just have two RNNs, one that reads the
+sequence from left to right. And other that reads the sequence from right to
+left. Them, the final $\xseq[\hat{y}]{t}$ will be a combination of the outputs
+of each RNN.
+
+We denote $\overleftarrow{a}$ as the activation value of the right to left RNN,
+and calculate $\xseq[\hat{y}]{t}$ as:
+\[
+\xseq[\hat{y}]{t}=
+g\paren{W_y\sbracket{\xseq[\vec{a}]{t}, \xseq[\overleftarrow{a}]{t}}+b_y}
+\]
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/BRNN.jpg}
+\caption{The graph of a BRNN.}
+\label{BR}
+\end{figure}
+
+The disadvantage of the BRNN is that we can't predict values until we have the
+whole sequence. If we have an online learning problem, we can't apply it.
+
+\subsection{Deep RNN}%
+\label{sub:deep_rnn}
+
+Many times we need to stack RNNs together to have a deeper model that can learn
+some complex function. What we've seen so far is just a single neuron that is
+applied at each time to predict the output value. But indeed we can have more
+than one neuron.
+
+We'll denote $\xlayer[\xseq[a]{l}]{t}$ as the activation value for time $t$ at
+layer $l$. This value is calculated using the activation from the same layer at
+the previous time and the previous layer at the same time:
+
+\[
+\xlayer[\xseq[a]{l}]{t}=
+g\paren{\xlayer[W_a]{l}\sbracket{
+\xlayer[\xseq[a]{l}]{t-1},\xlayer[\xseq[a]{l-1}]{t}
+}
++\xlayer[b_a]{l}}
+\]
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/DRNN.jpg}
+\caption{An example of Deep RNNs and how to calculate the activations.}
+\label{DRNN.jpg}
+\end{figure}
 
 
 
