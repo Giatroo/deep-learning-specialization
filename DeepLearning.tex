@@ -3164,7 +3164,177 @@ g\paren{\xlayer[W_a]{l}\sbracket{
 \label{DRNN.jpg}
 \end{figure}
 
+\section{Natural Language Processing}%
+\label{sec:natural_language_processing}
 
+Natural Language Processing (or NLP) is the field that studies ML applied to
+text data.
+
+\subsection{Word Representation}%
+\label{sub:word_representation}
+
+So far, we've been representing words using one-hot encoding. If our vocabulary
+has $10.000$ words, than each word will be a vector with $9.999$ zeros and $1$
+one.
+
+One downside of that representation is that the representation doesn't help the
+algorithm to learn relations between words. If we have the phrase:
+
+\begin{center}
+\texttt{I want a glass of orange ...}
+\end{center}
+
+And the algorithm learned that the next word it \texttt{juice}, then it doesn't
+help at all to predict the next word in the phrase:
+
+\begin{center}
+\texttt{I want a glas of apple ...}
+\end{center}
+
+That's because the inner product between any pair of vectors will always be zero
+and any distance will always be the same. \jump
+
+Instead we want a representation that can embed features inside of it. For
+instance, we would like the distance between \texttt{king} and \texttt{queen} to
+be the same as \texttt{man} and \texttt{woman}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/word_embedding.jpg}
+\caption{In the figure we see an example of representation that uses each entry
+of the representation vector as a feature. That way, similar words will have
+similar vectors and our algorithm can use that to generalize much better.}
+\label{word_embedding.jpg}
+\end{figure}
+
+\textbf{Word embedding} is the technique in NLP that allows us to create vectors
+like in figure \ref{word_embedding.jpg}. Each entry of the \textit{embedded}
+vector will not have meaningful values, but our algorithms will use those values
+to generalize better.
+
+In general, we use pre-trained embedding models that encode the words of our
+text using a pre-trained neural network. To train that network, we use a massive
+text courpus of unlabeled data.
+
+\subsection{Learning Word Embeddings}%
+\label{sub:learning_word_embeddings}
+
+There are many ways to learn a word embedding.
+
+One common way to learn word embeddings is using a neural network that receives
+four (or $n$) words and try to predict the next one. Those $n$ words are called
+the \textit{context}. What we try to optimize is not just the weights in the
+neural network, but also the embedding itself.
+
+Sometimes, the context can be not just the words before the word we're trying to
+predict, but also the words \textit{after}. Therefore, we use a window around
+the word we're trying to predict (the window can be centered in the word or
+not).
+
+Other contexts could be using just the last word, or perhaps using a nearby
+word. For instance, if we have \texttt{I want a glass of orange juice}, we pass
+\texttt{glass} and try to predict \texttt{juice}.
+
+\paragraph{Skip gram}%
+\label{par:skip_gram}
+
+That last idea borns the skip gram model. In this kind of model, we select a
+word from a sentence and then randomly select another word within a close window
+of the original word and then try to predict that word. This is not a very easy
+problem, but we don't want the model to be good in predicting the word, because
+we just want to use the model for creating word embeddings.
+
+There are some problems with the skip gram model, one of them is the fact that
+it's computacionally expansive, because we use a softmax through all the
+vocabulary. Another problem is how we sample the context word. If we uniformily
+pick a random word in the nearby window, we'll be selecting words like
+\texttt{the, of, a and, to} much more frequently because these words are more
+common. So in practice we can use different heuristics to sample the context.
+
+\paragraph{Negative Sampling}%
+\label{par:negative_sampling}
+
+We can define a different problem where we pick two words and try to predict
+wheather or not those words come from the same context. The positive examples
+are generated using the skip gram schema. Before generating a positive example,
+we'll generate $k$ negative examples by picking the same context word the
+sampling $k$ random words from the dictionary and labeling those as negative
+examples. We could run into the problem of picking a random word that indeed
+might be in the context of the original word, but that's ok, because by chance
+it will not occur often.
+
+In practice, we use larger values of $k$ (5-20) for smaller datasets and
+smaller values (2-5) for larger datasets.
+
+In this problem, we'll use a logist regression model that take as input the
+context and target word and repredict the changes of them coming from the same
+context.
+
+\paragraph{GloVe algorithm}%
+\label{par:glove_algorithm}
+
+The \textbf{global vector for word representation} is another algorithm to
+create word embeddings. In this algorithm we define $X_{ij}$ to be the number of
+times the words $i$ and $j$ appear in the same context. Then, we minimize the
+formula:
+
+\[
+\spsum{i=1}{|V|}\spsum{j=1}{|V|}f(X_{ij})\paren{\theta_i^{T}e_j+b_i-b_j'-\log
+X_{ij}}^2
+\]
+
+where $V$ is our vocabulary set; $f$ is a function that is zero is $X_{ij}$ is
+zero and a heuristic that weights the sum based on the words frequency to make
+stop word from weight a lot in the final computation and not common words weight
+more; $\theta$ is the model weights, and $e_j$ is the embedding for word $j$.
+
+\subsection{Sentiment classification}%
+\label{sub:sentiment_classification}
+
+Sentiment classification, or \textbf{sentiment analysis}, is one of the most
+important applications of NLP. We receive some text as input and classify the
+sentment contained in that text. The classes can be a score (like stars in a
+review system), can be \textit{positive}, \textit{neutral} or \textit{negative},
+or can be something more complex like \textit{angry}, \textit{sad},
+\textit{happy}, \textit{excited}...
+
+One simple model to do sentiment analysis is getting the embeddings of each word
+in the text using an embedding model and then averaging those embeds to create a
+single embedding that is passed to a softmax layer that predicts one of the
+classes.
+
+This algorithm can work for any text size, but it will not capture the meaning
+of the position of each word.
+
+So instead of that, we can use a many-to-one RNN to predict the class.
+
+\subsection{Debiasing Word Embeddings}%
+\label{sub:debiasing_word_embeddings}
+
+Word embeddings can reflect gender, ethnicity, age, sexual orientation, and
+other biases of the text used to train the model. It's important to reduce these
+kinds of biases in our models.
+
+There are many ways to adress this problem and many others are being developed,
+but let's cite one.
+
+The first step is identify the bias direction. We could do that by subtracting
+many pairs of word embeddings that represent a particular bias we want to
+eliminate. For instance, we could get the differences between the pairs: (he,
+she), (male, female), (boy, girl), (father, mother) and so on. Then we could
+average those differences to get the direction of bias.
+
+\begin{obs}
+In a real algorithm, we could use a more sofisticated algorithm to generate a
+bias direction higher than 1-dimensional called SVD (singular value
+decomposition).
+\end{obs}
+
+The next step is to neutralize the bias. We project every word that is not
+definitional to onto the direction we've found to get rid of the bias.
+
+And the last step is to equalize the pairs that we care to make them evenly
+spaced around the bias axes.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
