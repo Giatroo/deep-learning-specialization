@@ -10,4 +10,4 @@
 This is my repository for Deep Learning Specialization on Cousera by
 DeepLearning.AI.
 
-It can be found [here](https://www.coursera.org/specializations/deep-learning).
+The course can be found [here](https://www.coursera.org/specializations/deep-learning).
