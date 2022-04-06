@@ -3336,6 +3336,419 @@ definitional to onto the direction we've found to get rid of the bias.
 And the last step is to equalize the pairs that we care to make them evenly
 spaced around the bias axes.
 
+\section{Sequence to sequence models}%
+\label{sec:sequence_to_sequence_models}
+
+Seq-to-seq models are very important for many tasks such as \textit{speach
+recognition}, \textit{translation}, \textit{trigger word detection} and many
+others.
+
+The basic model of seq-to-seq has two parts that we call the \textbf{encoder}
+and the \textbf{decoder}.
+
+The encoder is an RNN that reads the input one element at a time and just output
+a single encoding at the end. That encoding will be decoded by the decoder RNN
+to output one output at a time.
+
+The decoder RNN receives the encoding as the first activation value and receives
+the previous output as the input value.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=1]{Res/Seq2seq-basic-model.jpg}
+\caption{Here we see the encoder in black and the decoder in blue.}
+\label{Seq2seq-basic-model.jpg}
+\end{figure}
+
+A similar idea can be used to perform image captioning, where we encode an image
+using a CNN without the last predicting layer and pass the encoding to a decoder
+RNN that will predict one word at a time. \jump
+
+One might see in figure \ref{Seq2seq-basic-model.jpg} that the decoder looks
+like a language model, where the next prediction will be based on the previous
+prediction as well was the activation output.
+
+Indeed, we can see the machine transalation problem as a \textit{conditional
+language model} where instead of reciving $\xseq[a]{0}=\vec{0}$, you receive the
+output of another RNN that encodes the sentence you're trying to transalate.
+
+But instead of randomly samplying the $y$ as we did with language models, we
+want to pick the best $y$ to have the best translation. In math terms we write:
+\[
+\text{arg max}_{\xseq[y]{1},\cdots,\xseq[y]{T_y}}
+P\paren{\xseq[y]{1},\cdots,\xseq[y]{T_y}\cond x}
+\]
+
+We need then to find $y=\xseq[y]{1},\cdots,\xseq[y]{T_y}$ that maximizes that
+probability. To find that, we can't use greedy search (i.e., picking
+$\xseq[y]{1}$ that maximizes $P(\xseq[y]{1}\cond x)$ and then picking
+$\xseq[y]{2}$ that maximizes $P(\xseq[y]{1}, \xseq[y]{2}\cond x)$ and so on).
+
+The algorithm, we're gonig to use is called \textbf{beam search}.
+
+\subsection{Beam search}%
+\label{sub:beam_search}
+
+Beam search looks like a greedy search, but with an argument $B$ that represents
+the number of choices to keep on the search space.
+
+While greedy search picks the best possible answer for that point on the search,
+beam search will pick the $B$ best possible answers and use all of them in the
+next step.
+
+So for the first word, we'll pick the $B$ best possible answers. Then for the
+second word, we'll first the first of those options, evaluate all the
+probabilities of using that fixed first word with all the other words in the
+vocabulary and then do the same for all the other $B-1$ words, using the
+formula:
+
+\[
+P\paren{\xseq[y]{1}, \xseq[y]{2}\cond x} =
+P\paren{\xseq[y]{1}\cond x} \cdot P\paren{\xseq[y]{2}\cond x, \xseq[y]{1}}
+\]
+
+Before that, we again cut down all the possibilities to the best $B$ of them. So
+we'll keep only the $B$ best pairs of $\pair{\xseq[y]{1}}{\xseq[y]{2}}$.
+
+After that, we'll repeat this same process for all the outputs, picking the best
+at the last output.
+
+Indeed that search algorithm \textbf{doesn't} garantee it'll find the best value
+of $y$ (for instance, if the first word of that best $y$ is the $B+1$ best
+considering only the first word). However, that algorithm performs good enough
+for the time it spends.\jump
+
+There are also some refinements we can do to the algotihm to make it perform
+even better. Let's see some of them.\jump
+
+\paragraph{Length normalization}%
+\label{par:length_normalization}
+
+As we've seen before, the algorithm is trying to find
+\[
+y = \text{arg max}\spprod{t=1}{T_y}P\paren{\xseq[y]{t}\cond x,
+\xseq[y]{1},\cdots,\xseq[y]{t-1}}
+\]
+
+As we have a product of probabilities, that product tent to become smaller and
+smaller. Thus, we might end up having many float precision errors. So instead of
+maximizing that function, we can maximize:
+\[
+y = \text{arg max}\spsum{t=1}{T_y}\log P\paren{\xseq[y]{t}\cond x,
+\xseq[y]{1},\cdots,\xseq[y]{t-1}}
+\]
+
+But both of those formulas have the same problem: as we add more terms to the
+sequence, the loss function will become worst and worst. In the product formula,
+as we multiply more probabilities together, the product will be closer and
+closer to zero. And in the log formula, the log of a number between zero and one
+is negative, so the formula will be come more and more negative.
+
+Therefore, the algorithm will tend to stop early and result in small sequences.
+
+What we can do to avoid that is normalize by the number of terms our sequence
+has so far. So we use:
+\[\boxed{
+y = \text{arg max}\dfrac{1}{T_y^{\alpha}}\spsum{t=1}{T_y}\log
+P\paren{\xseq[y]{t}\cond x, \xseq[y]{1},\cdots,\xseq[y]{t-1}}
+}\]
+
+The $\alpha$ value is a hyperparameter number between $0$ and $1$. For $0$ is
+the same as the old formula and $1$ is completely normalizing each term, so we
+pick something in between.
+
+\paragraph{Choosing value of B}%
+\label{par:choosing_value_of_b}
+
+The value of $B$ controls the trade-off between a faster but worse algorithm
+versus a slower but better. Many applications will pick values of $B$ between
+$10$ and $100$, but if you have time and is just doing a study, you might pick
+something like $B=1000$.
+
+Also take into consideration that inscreasing the value of $B$ result in a
+diminishing result. The result is really better if we go from $3$ to $10$, but
+it wil not be as good to go from $1000$ to $3000$.
+
+\paragraph{Error Analysis}%
+\label{par:error_analysis}
+
+When using beam search to find the best sequence, it would be good if we could
+do some error analysis to decide if our RNN is performing poorly or if it's the
+beam search algorithm. Should be training more the RNN or should we increase
+$B$?
+
+To perform error analysis, we'll two sentences. $y^{*}$ will denote the sequence
+that we except to get from the model. And $\hat{y}$ is the actually output of
+the model.
+
+Now we compare the output of the RNN for those to values to obtain $P(y^{*}\cond
+x)$ and $P(\hat{y}\cond x)$. Comparing those values we'll if the RNN made a
+mistake or it was actually the beam search and didn't find the right value.
+
+If $P(y^{*}\cond x)$ is lower than $P(\hat{y}\cond x)$, then beam search was
+right and actually the model is wrong to predict those probabilities. But it the
+other case happens, than the RNN predicted right, but the beam search wasn't
+able to find the maximum value.
+
+Now we can apply that for many instances of our set and compare the RNN and Beam
+search error rates, finding which is better to improve.
+
+\subsection{Attention Model}%
+\label{sub:attention_model}
+
+We've seen so far in this section algorithms that use encoder-decoder models.
+There's a modification to this called the \textit{attention model} that makes
+this work much better.
+
+Suppose we have a long sequence of France text that we're trying to transalate.
+What we've been doing so far is converting the whole sequence into just one
+output that will inputed by the decoder.
+
+If we think in how we humans would do that job, we don't transalate the whole
+sentence at once, we go part by part, breaking the text into smaller pieces.
+
+In this model, we also have two RNNs, one for and encoding and one for decoding.
+The decoding RNNs is pretty much the same, it receives a value that we'll call
+$\xseq[c]{t}$ and decodes it into a word (not all words, just one). $c$ is
+called a \textbf{context}.
+
+The big change comes in the encoder model and it generate $\xseq[c]{t}$.
+
+The encoder will predict $\xseq[a]{t}$ values for each word, like a regular RNN.
+Then, for predicting the first word, we'll average these values using a set of
+weights $\alpha$. Each context value will be generated using the formula:
+
+\[ \boxed{
+    \xseq[c]{t}=\spsum{t'}{}\xseq[c]{t,t'}\xseq[a]{t'}
+}\]
+
+Notice that $t$ is the output ``time'' and $t'$ is the input time.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.4]{Res/attention_model.jpg}
+\caption{The attention model layout.}
+\label{attention_model.jpg}
+\end{figure}
+
+We say that $\xseq[\alpha]{t,t'}$ is the amount of attention $\xseq[y]{t}$
+should pay to $\xseq[a]{t'}$. To compute these values, we'll use the formula:
+
+\[
+\xseq[a]{t,t'}=\dfrac{\exp(\xseq[e]{t,t'})}{\spsum{t'=1}{T_x}\exp(\xseq[e]{t,t'})}
+\]
+
+to make sure the values of $\alpha$ sum up to $1$.
+
+To compute the $e$ values, we can use a single neural network that receives
+$\xseq[a]{t'}$ and $\xseq[s]{t-1}$, which is the previous activation state of
+the decoder network.
+
+\section{Transformer Network}%
+\label{sec:transformer_network}
+
+Transformers are the state-of-art for NLP tasks today. Many famous models like
+GPT and BERT use them and have been performing very good in the benchmarks.
+
+So far we've seem that RNNs have some problems with vanishing gradients and
+looked at some more complex models that some partialy that problem like GRU and
+LSTM. However, those later models are way slowers and are still sequential
+models, which means each predicted value depends on the previous inputs. The
+problem with these models that process the data sequentialy is that we can't use
+the power of modern GPUs by doing parallel computations.
+
+Transformers were presented in a paper by Vaswani et al. in 2017 called
+\textit{Attention is all you need}. They use attention based representation and
+CNN processing. To learn their architecture, we need to learn
+\textit{self-attention} and \textit{multi-head attention}, which are techniques
+used by the transformer.
+
+\subsection{Self-Attention}%
+\label{sub:self_attention}
+
+The self-attention of a sequence input is a set of representation vectors for
+each of the sequence elements. So for each element of the input $\xseq[x]{i}$,
+we want to calculate $\xseq[A]{i}$. That's why it's called \textit{self},
+because we have a representation for each element.
+
+So far we've already learned word embeddings. However, the embedding might
+change depending on the \textit{context} of that particular word. That's what
+the attention representation will do. It look at the surrounding words and do
+almost the same thing we've already learned for the attention mechanism.
+
+Previously, the equation was
+\[
+\xseq[a]{t,t'}=\dfrac{\exp(\xseq[e]{t,t'})}{\spsum{t'=1}{T_x}\exp(\xseq[e]{t,t'})}
+\]
+
+Now, the equation will be very similar:
+\[
+A(q, K, V)=\spsum{i}{}
+\dfrac{\exp(q\cdot\xseq[k]{i})}{\spsum{j}{}\exp(q\cdot\xseq[k]{j})}\xseq[v]{i}
+\]
+
+That equation adds three parameters: $q, K$ and $V$. For each input element,
+we'll have those three values.
+\begin{itemize}
+    \item $q$ is called the \textit{query};
+    \item $K$ is called the \textit{key};
+    \item $V$ is called the \textit{value}.
+\end{itemize}
+
+So first, for each input element $\xseq[x]{i}$, we need to calculate those three
+values. We compute them using parameter matrices $W^{Q}, W^{K}$ and $W^{V}$:
+\[
+\xseq[q]{i}=W^{Q}\xseq[x]{i}
+\]
+\[
+\xseq[k]{i}=W^{K}\xseq[x]{i}
+\]
+\[
+\xseq[v]{i}=W^{V}\xseq[x]{i}
+\]
+
+Intuitively, the query is like a question we want to answer about that
+particular input element and the key is an information about that input element.
+So when computing the dot product $q\cdot k$ as we have in the attetion
+equation, we're intuitively computing the importance of each other input element
+to answer the question about the current input element.
+
+After that, we multiply each dot product by the values of each input element and
+sum it up.
+
+If we summarize all the computations for $\xseq[A]{i}$ into a vectorized
+formula, it will looks like:
+\[ \boxed{
+    Attention(Q, K, V) = softmax\paren{\dfrac{QK^{T}}{\sqrt{d_k}}}V
+}\]
+
+This kind of attention is called \textbf{scaled dot product attention}.
+
+\subsection{Multi-Head Attention}%
+\label{sub:multi_head_attention}
+
+This mechanism is basicaly a big for loop over the self-attention mechanism.
+
+Each time we calculate the self-attention is called a head, so we do that a lot
+of times.
+
+Now, instead of having just one $W$ matrix for each one of the parameters
+(query, key, value), we have $h$ $W$ matrices and thus we'll end up with many
+different queries, keys and values.
+
+Thus we have $h$ attention matrices $Attention(W^{Q}_iQ,W^{K}_iK,W^{V}_iV)$ and
+each one of them can be visualized as a different feature of the input as a
+whole. So the final value of attention will be the concatenation of all the $h$
+heads and we multiply it by a $W_0$ weights matrix.
+
+The good news of that kind of computation is that we can do it in parellel,
+we're not processing the data sequencialy in any way.
+
+\subsection{Transformer Network}%
+\label{sub:transformer_network}
+
+As many other sequence models, the transformer is divided into a
+\textbf{encoder} and a \textbf{decoder}.
+
+In the encoder, the first step is pass the input sequence into a
+\textit{multi-head attention} layer, than we pass the output of that layer into
+a \textit{feed forward neural network}. The intuition is that the multi-head
+attention layer performs some kind of feature selection/extraction/engineering
+while the feed forward neural network uses those features to learn new things.
+
+One encoder has many of that \textit{encode block} of attention and neural net,
+for instance six blocks.
+
+In the decoder, the first step is to pass the \textit{current output} (commonly
+initialized if a \textit{start of sentence} element) to a multi-head attention
+layer that will generate a query matrix to the next multi-head attention layer.
+That next layer will receive the key and value matrices from the output of the
+encoder. It's doing that way because we have a current output and we want to use
+that as a query for what should be the next word, and the \textit{context} is
+used from the key and value generated using the input sequence.
+
+That second multi-head attention layer outputs to a feed forward neural network
+as well, and we repeat that decode block a few times just like in the encoder
+and finally output an output element.
+
+The decorer is run until it predicts an \textit{end of sentence} element (or
+something with the same meaning).
+
+\subsubsection{Improving the Transformer}%
+\label{ssub:improving_the_transformer}
+
+There are some bells and whistles that can make the transformers even better.
+Let's look at some of them.
+
+\paragraph{Positional Encoding}%
+\label{par:positional_encoding}
+
+Unlike the first models we've learned, the transformers don't process data
+sequentialy, so they don't have a sense of position of each word (we saw we can
+even get attention for each word in parallel). The position, however, is
+important in many senarios, and there's a way to encode the position of each
+word to have that effect.
+
+To do that, we sum a positional encoding with the embedding of the words before
+inputing it into the encoder. Many positional encodings can be used, but in the
+original paper, the authors use:
+\[
+PE_{\paren{pos,2i}}=\sin\paren{\dfrac{pos}{10000^{\dfrac{2i}{d}}}}
+\]
+\[
+PE_{\paren{pos,2i+1}}=\cos\paren{\dfrac{pos}{10000^{\dfrac{2i}{d}}}}
+\]
+
+where $d$ is the dimension of the word embedding and $pos$ is the numerical
+position of the word (starting in $1$).
+
+we add the positinal encoding to the input embeddings, but also use skip
+connections to add that in many parts of the network, to garantee the position
+is been used throughout the architecture.
+
+\paragraph{Add & Norm}%
+\label{par:add_norm}
+
+In the original paper, the authors also used a layer which is very similar to
+the Batch Normalization layer, and helps to speed up the computations. That
+layer is called \textit{Add & Norm}, and it's applied at the end of the attention
+and neural net layers. They also use a skip connection that skips the layer
+before than, garanteeing a long term learning.
+
+\paragraph{Masked Multi-Head Attention}%
+\label{par:masked_multi_head_attention}
+
+Also, in the original paper the first multi-head attention of the decoder is not
+exactly what we've learned. It's called \textit{masked multi-head attention} and
+it's used only for traning reasons.
+
+Since in the traning we already have the correct output sequence, we don't have
+to generate one output element at a time and feed that current output to the
+decoder. We can instead use a masked version of the \textit{correct} output, but
+only for the $t$ first elements, where $t$ is the number of times we've run the
+decoder so far.
+
+So the masked multi-head attetion is just a mechanism that pretends the network
+predicted correctly the first $t$ elements and use those elements to predict the
+$t+1$ element.
+
+\paragraph{Prediction}%
+\label{par:prediction}
+
+Finally, at the end of the of the architecture, there's a linear layer and a
+softmax layer to make the prediction.
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{Res/transformer_arch.png}
+\caption{The final view of the Transformer Architecture.}
+\label{transformer_arch.png}
+\end{figure}
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document}
